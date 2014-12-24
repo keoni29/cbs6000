@@ -18,9 +18,8 @@ CRA = CIA + $E
 CRB = CIA + $F
 addr = $02
 
-
-#define cbaud 1;
-#define delay 125
+#define cbaud 1
+#define delay 225
 
 #define CS 1
 
@@ -70,34 +69,32 @@ isr:	lda ICR						; Acknowledge interrupt
 		sta PBDAT
 		lda #0
 		sta PBDAT
-		lda (addr),y				; Load sound data from ram
+		lda (addr),y
 		pha
-		clc:ror:ror:ror:ror			; Format data for transfer
-		and #$0F					; And send 16 bit DAC command over serial
+		clc:ror:ror:ror:ror
+		and #$0F
 		ora #%01110000
 		sta SDR
 		pla
 		rol:rol:rol:rol
 		sta SDR
-		sec							; Jump to next byte in ram
+		sec
 		tya
 		adc addr
 		sta addr
 		tya
 		adc addr + 1
 		sta addr + 1
-		cmp #>soundend				; Check if sample is done playing yet
+		cmp #>(sound+51516)
 		beq res1
 		rti
 res1:	lda addr
-		cmp #<soundend
+		cmp #<(sound+51516)
 		beq res
 		rti
-res:	lda #<sound					; Loop sample
+res:	lda #<sound
 		sta addr
 		lda #>sound
 		sta addr + 1
 		rti
 sound:
-.bin	0,0,"sounddata.bin"
-soundend:
