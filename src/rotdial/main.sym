@@ -1,0 +1,15 @@
+.label inner=$f06b
+.label next=$f00b
+.label ss_clear=$f07b
+.label countloop=$f01f
+.label invalid=$f04c
+.label not0=$f052
+.label wait40ms=$f065
+.label ss_putd=$f074
+.label lessthan10=$f05c
+.label digit=$f048
+.label idle=$f00f
+.label pulseactive=$f034
+.label equalto10=$f05a
+.label delay=$f069
+.label bp_beep=$f091
