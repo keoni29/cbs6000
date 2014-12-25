@@ -20,6 +20,9 @@ init:	lda #(DISROM | STATLED)	; Disable the ROM & turn on status LED
 		jsr puts
 loop:	jmp loop				; Loop forever
 
+;=====================================================================
+; S U B R O U T I N E S
+;=====================================================================
 initSerial:
 		lda #<cbaud				; Set baudrate
 		sta TAL
@@ -28,18 +31,16 @@ initSerial:
 		lda #%01010001			; Start timer in continuous mode
 		sta CRA					; Serial port = output
 		rts
-;=====================================================================
-; S U B R O U T I N E S
-;=====================================================================
+
 ; Send zero terminated string over serial
 puts:	tya
 		pha
 puts_nextch:
 		ldy #0
-		lda (sstrPtr),y			; Load character from ram
+		lda (sstr),y			; Load character from ram
 		cmp #0
 		beq puts_strterm
-		jsr putc
+		sta SDR
 		sec						; Advance to next character
 		tya
 		adc sstr
@@ -53,15 +54,6 @@ puts_strterm:
 		tay
 		rts
 
-putc:	ldy ICR
-		sta SDR					; Send character over serial
-		pha
-putc_wait:
-		lda ICR					; Check if character has been sent yet
-		and #((1<<7)|(1<<3))
-		cmp #((1<<7)|(1<<3))
-		bne putc_wait
-		rts
 	
 blinkLed:
 		lda #STATLED
@@ -72,4 +64,4 @@ blinkLed:
 ; D A T A
 ;=====================================================================
 bootMsg:
-.asc " *** 6510 Microcomputer System *** ", $0D, $0A ,$00
+.asc "*** 6510 Microcomputer System ***", $0D, $0A ,$00
