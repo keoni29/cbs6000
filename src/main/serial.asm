@@ -1,3 +1,6 @@
+; Filename	serial.asm
+; Author	Koen van Vliet	<8by8mail@gmail.com>
+
 ;=====================================================================
 ; S E R I A L  O U T P U T
 ;=====================================================================
@@ -18,15 +21,39 @@ puts_nextch:
 		cmp #0
 		beq puts_strterm		; Terminate if zero
 		sta SDR
-		sec						; Advance to next character
-		tya
-		adc sstr
-		sta sstr
-		tya
-		adc sstr + 1
-		sta sstr + 1
+		tya						; Advance to next character
+		jsr sstr_inca			
 		jmp puts_nextch
 puts_strterm:
+		pla
+		tay
+		rts
+
+putc:	sta SDR
+putc_wait:
+		lda ICR
+		and #(1<<3)
+		beq putc_wait
+		rts
+
+; Print byte as hexadecimal
+; input		A
+puth_lut:
+.asc "0123456789ABCDEF"
+puth:	sta swp_str
+		tya
+		pha
+		lda swp_str
+		ror:ror:ror:ror
+		and #$0F
+		tay
+		lda b2hex_lut,y
+		jsr putc
+		lda swp_str
+		and #$0F
+		tay
+		lda b2hex_lut,y
+		jsr putc
 		pla
 		tay
 		rts
