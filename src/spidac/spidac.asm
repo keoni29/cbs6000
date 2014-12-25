@@ -99,5 +99,5 @@ res:	lda #<sound					; Loop sample
 		sta addr + 1
 		rti
 sound:
-.bin	0,0,"sounddata.bin"
+.bin	0,0,"numbers.bin"
 soundend:
