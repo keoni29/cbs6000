@@ -20,18 +20,10 @@ init:	lda #(DISROM | STATLED)	; Disable the ROM & turn on status LED
 		lda #>bootMsg
 		sta sstr + 1
 		jsr puts
-		lda #$AA
-		ldx #$BB
-		ldy #$CC
-		nop
-		brk
-		nop
-		brk						; Break point dump registers
-		nop
-		lda #' '
-		jsr putc
-		lda #$A7				; Print hexadecimal number $A7	
-		jsr b2hex
+		lda #<doneMsg			; Print a string over serial
+		sta sstr
+		lda #>doneMsg
+		sta sstr + 1
 		jsr puts
 loop:	jmp loop				; Loop forever
 
@@ -52,7 +44,8 @@ statled:lda #STATLED			; Toggle status LED
 bootMsg:
 .asc " *** 6510 Micro Computer System *** ", $0D
 .asc " 128K RAM SYSTEM  126976 BYTES FREE ", $0D
-.asc " READY to Rock! ", $0D, $0A, $00
-.asc $0,$0,$0D,$0A
+.asc " READY to Rock! ", $0D, $00
+doneMsg:
+.asc "Done executing program!", $0D, $00
 b2hex_lut:
 .asc "0123456789ABCDEF"

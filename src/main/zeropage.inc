@@ -1,7 +1,11 @@
-; String pointer
+; Filename	zeropage.inc
+; Author	Koen van Vliet	<8by8mail@gmail.com>
+
+; String
 str = $02
 sstr = str
 swp_str = str + 2
+
 ; Debug
 bk = $06
 bk_ACC 	= bk 

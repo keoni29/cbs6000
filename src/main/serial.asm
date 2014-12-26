@@ -13,7 +13,9 @@ serial_init:
 		sta CRA					; Serial port = output
 		rts
 
-puts:	tya
+puts:	brk						; Break point dump registers
+		nop
+		tya
 		pha
 puts_nextch:
 		ldy #0
