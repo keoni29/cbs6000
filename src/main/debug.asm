@@ -9,22 +9,22 @@ dbg_init:
 		rts
 
 dbg_regdump:
-		sta bk_ACC:jsr putc		; Dump accumulator
+		sta bk_ACC:jsr puth		; Dump accumulator
 		pla						; Dump status 
-		sta bk_STAT:jsr putc
+		sta bk_STAT:jsr puth
 		tya						; Dump index Y
-		sta bk_INY:jsr putc
+		sta bk_INY:jsr puth
 		txa						; Dump index X
-		sta bk_INX:jsr putc
+		sta bk_INX:jsr puth
 		tsx						; Dump stack pointer
-		dex
-		dex
+		inx
+		inx
 		txa
-		sta bk_SP:jsr putc
+		sta bk_SP:jsr puth
 		pla						; Dump program counter
-		sta bk_PCL:jsr putc
+		sta bk_PCL:jsr puth
 		pla
-		sta bk_PCH:jsr putc
+		sta bk_PCH:jsr puth
 		lda bk_STAT				; Restore processor status
 		pha
 		plp

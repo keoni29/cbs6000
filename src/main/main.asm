@@ -20,7 +20,7 @@ init:	lda #(DISROM | STATLED)	; Disable the ROM & turn on status LED
 		lda #>bootMsg
 		sta sstr + 1
 		jsr puts
-
+		ldx #$5A
 		brk						; Break point: dump registers
 		jsr statled
 		lda #$A7				; Print hexadecimal number $A7	

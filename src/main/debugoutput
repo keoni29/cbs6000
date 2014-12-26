@@ -1,0 +1,8 @@
+acc: 00 ; is right
+stat:37 ; is right
+y: 00	; is right
+x: 08	; is right
+SP:FD	; is right
+PC:	 021B ; this is probably right
+
+now check if registers were restored properly!
