@@ -23,6 +23,9 @@ init:	lda #(DISROM | STATLED)	; Disable the ROM & turn on status LED
 		lda #$AA
 		ldx #$BB
 		ldy #$CC
+		nop
+		brk
+		nop
 		brk						; Break point dump registers
 		nop
 		lda #' '
@@ -47,8 +50,8 @@ statled:lda #STATLED			; Toggle status LED
 ; D A T A
 ;=====================================================================
 bootMsg:
-.asc " *** 6510 Micro Computer System *** ", $0D, $0A
-.asc " 128K RAM SYSTEM  126976 BYTES FREE ", $0D, $0A
+.asc " *** 6510 Micro Computer System *** ", $0D
+.asc " 128K RAM SYSTEM  126976 BYTES FREE ", $0D
 .asc " READY to Rock! ", $0D, $0A, $00
 .asc $0,$0,$0D,$0A
 b2hex_lut:

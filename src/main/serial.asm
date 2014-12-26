@@ -30,10 +30,17 @@ puts_strterm:
 		rts
 
 putc:	sta SDR
+		txa
+		pha
+		ldx #32
 putc_wait:
-		lda ICR
-		and #(1<<3)
-		beq putc_wait
+		dex
+		;lda ICR
+		;and #(1<<3)
+		;beq putc_wait
+		bne putc_wait
+		pla
+		tax
 		rts
 
 ; Print byte as hexadecimal
