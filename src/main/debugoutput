@@ -6,3 +6,19 @@ SP:FD	; is right
 PC:	 021B ; this is probably right
 
 now check if registers were restored properly!
+
+AA
+B5
+CC
+BB
+FD
+0221
+
+AA
+B5
+CC
+BB
+FD
+0223 
+
+Registers are restored properly!

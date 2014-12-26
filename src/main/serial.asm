@@ -38,8 +38,6 @@ putc_wait:
 
 ; Print byte as hexadecimal
 ; input		A
-puth_lut:
-.asc "0123456789ABCDEF"
 puth:	sta swp_str
 		tya
 		pha

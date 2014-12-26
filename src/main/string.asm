@@ -5,8 +5,6 @@
 ; input		A
 ; uses		A,Y
 ; output	Writes string at string pointer
-b2hex_lut:
-.asc "0123456789ABCDEF"
 b2hex:	pha
 		ror:ror:ror:ror
 		and #$0F

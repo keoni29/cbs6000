@@ -12,5 +12,3 @@ bk_PCH	= bk + 4
 bk_PC	= bk_PCL
 bk_SP	= bk + 5
 bk_STAT	= bk + 6
-
-Weird bug: program does not execute right after brk point

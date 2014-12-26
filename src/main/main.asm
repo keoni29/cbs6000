@@ -20,9 +20,13 @@ init:	lda #(DISROM | STATLED)	; Disable the ROM & turn on status LED
 		lda #>bootMsg
 		sta sstr + 1
 		jsr puts
-		ldx #$5A
-		brk						; Break point: dump registers
-		jsr statled
+		lda #$AA
+		ldx #$BB
+		ldy #$CC
+		brk						; Break point dump registers
+		nop
+		lda #' '
+		jsr putc
 		lda #$A7				; Print hexadecimal number $A7	
 		jsr b2hex
 		jsr puts
@@ -47,3 +51,5 @@ bootMsg:
 .asc " 128K RAM SYSTEM  126976 BYTES FREE ", $0D, $0A
 .asc " READY to Rock! ", $0D, $0A, $00
 .asc $0,$0,$0D,$0A
+b2hex_lut:
+.asc "0123456789ABCDEF"
