@@ -1,6 +1,6 @@
 #define ledpin 4
 
-*= $0200
+*= $1000
 init:	lda #ledpin
 		sta $00
 		lda #$00
