@@ -6,8 +6,6 @@
 DDR = $00
 PORT = $01
 
-RX_BUFF = $0200
-
 CIA = $D000
 PRA = CIA + $0
 PRB = CIA + $1
