@@ -93,10 +93,19 @@ isr_rx:	pha
 		pha
 		tya
 		pha
-		
-		lda ACIA_DR
-		jsr putc
 
+		ldx ACIA_DR		; Read character from ACIA
+		lda rxcnt
+		and #64			; Check for buffer overflow
+		bne isr_rx_full
+		lda rxp
+		and #63
+		tay
+		txa
+		sta RX_BUFF,y	; Store character in buffer
+		inc rxp			; Advance buffer pointer
+		inc rxcnt		; Increment rx byte counter
+isr_rx_full:
 		pla
 		tay
 		pla
@@ -110,7 +119,7 @@ isr_no_char:
 getc:	lda rxcnt				; Check if buffer is empty
 		beq getc_n
 		lda rxp					; offset = rxp - rxcnt
-		clc
+		sec
 		sbc rxcnt
 		and #63
 		dec rxcnt				; Go to next byte in buffer
