@@ -2,23 +2,33 @@
 ; Author	Koen van Vliet	<8by8mail@gmail.com>
 #define SPMODE	6
 #define SS	0
-;#define _ACIA_SETUP (1<<7) | (1<<4) | (1<<0)
-#define _ACIA_SETUP (1<<4) | (1<<0)
-; Notes on ACIA setup
-; * Serial clock/16
-; * 8b 2s no parity
-; * Receive irq enabled
 ;=====================================================================
 ; S E R I A L  O U T P U T
 ;=====================================================================
 serial_init:
 		lda #3					; Reset ACIA
 		sta ACIA_CR
-		lda #_ACIA_SETUP		; Initialize ACIA
-		sta ACIA_CR
+
+		lda #<isr_rx			; Set interrupt vector
+		sta $FFFE
+		lda #>isr_rx
+		sta $FFFF
+
+		lda #(1<<4)|(1<<0)		; Initialize ACIA
+		sta ACIA_CR				; * Serial clock/16
+								; * 8b 2s no parity
 		lda #0					; Initialize rx buffer
 		sta rxcnt
 		sta rxp
+		rts
+
+serial_int_en:
+		lda #(1<<7)|(1<<4)|(1<<0); Enable rx interrupts
+		sta ACIA_CR
+		rts
+serial_int_di:
+		lda #(1<<7)|(1<<4)		; Disable rx interrupts
+		sta ACIA_CR
 		rts
 
 putc:	sta ACIA_DR				; Send char
@@ -52,7 +62,10 @@ sstr_inca:						; Increment string pointer by 1 + A
 
 ; Print byte as hexadecimal
 ; input		A
-puth:	sta swp_str
+b2hex_lut:
+.asc "0123456789ABCDEF"
+puth:	pha
+		sta swp_str
 		tya
 		pha
 		lda swp_str
@@ -68,30 +81,27 @@ puth:	sta swp_str
 		jsr putc
 		pla
 		tay
+		pla
 		rts
 
 ; ISR Receive byte from ACIA serial port
 isr_rx:	pha
+		lda ACIA_SR
+		and #1
+		beq isr_no_char
 		txa
 		pha
 		tya
 		pha
-		lda ACIA_SR				; Check if a character was received
-		ldx ACIA_DR				; Read character from ACIA
-		lda #64
-		and rxcnt				; Check if buffer is full
-		bne rx_full
-		lda #63
-		and rxp	            	; Limit buffer size to 64 bytes
-		tay
-		txa
-		sta RX_BUFF,y	      	; Store character in buffer
-		inc rxp              	; Advance buffer pointer
-		inc rxcnt              	; Increase read offset
-rx_full:pla
+		
+		lda ACIA_DR
+		jsr putc
+
+		pla
 		tay
 		pla
 		tax
+isr_no_char:
 		pla
 		rti
 

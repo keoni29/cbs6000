@@ -1,22 +1,4 @@
-#define DISROM  16
-#define STATLED  4
-#define BANKSW  32
-#define RUN 1
-
-DDR = $00
-PORT = $01
-
-CIA = $D000
-PBDAT = CIA + $1
-PBDDR = CIA + $3
-TAL = CIA + $4
-TAH = CIA + $5
-TBL = CIA + $6
-TBH = CIA + $7
-SDR = CIA + $C
-ICR = CIA + $D
-CRA = CIA + $E
-CRB = CIA + $F
+#include "../cbs.inc"
 addr = $02
 
 #define startaddr $0200				; Software will be loaded at this address
@@ -41,7 +23,10 @@ init:	sei							; Disable interrupts
 		lda #>startaddr
 		sta addr + 1
 
-		lda #%10001000				; Enable serial interrupts
+		lda #3						; Reset ACIA
+		sta ACIA_CR
+
+		lda #%10001000				; Enable CIA sp interrupts
 		sta ICR
 
 		ldy #0
@@ -77,6 +62,6 @@ isr:	pha
 		pla
 		rti
 end:
-		.dsb ($2000-(end-start)-4),$FF
+		.dsb ($1000-(end-start)-4),$FF
 		.word init
 		.word isr

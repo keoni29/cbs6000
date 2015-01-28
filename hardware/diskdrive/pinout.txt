@@ -1,0 +1,19 @@
+m	pin	driver	device				Description
+	____________________________________________
+x	2	RWC		DCD					
+	4	N.C.	RESERVED			
+	6	N.C.	DS3?				Not all drives might have this pin
+	8	INDEX	INDEX				
+x	10	MO0		DS0					
+	12	DS1		DS1					
+x	14	DS0		DS2					
+x	16	MO1		MTRON					
+	18	DIR		DIR					
+	20	STEP	STEP					
+	22	WD		WDATE					
+	24	WE		WGATE					
+	26	TRK0	TRK00					
+	28	WP		WPT						
+	30	RDATA	RDATA					
+	32	HEAD	SIDE1					
+	34	DSKCHG	RDY						

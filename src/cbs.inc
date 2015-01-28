@@ -1,6 +1,7 @@
 #define DISROM  16
 #define STATLED  4
 #define BANKSEL  32
+#define RUN 1
 
 DDR = $00
 PORT = $01

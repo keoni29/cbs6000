@@ -17,7 +17,7 @@ init:	sei						; Disable interrupts
 		txs
 		cld						; Clear decimal mode
 
-		lda #STATLED			; Turn on status LED
+		lda #(STATLED | DISROM)	; Turn on status LED
 		sta $00
 		ora $01
 		sta $01
@@ -31,8 +31,12 @@ init:	sei						; Disable interrupts
 		sta sstr + 1
 		jsr puts
 
-loop:	jsr statled
-		jsr delay
+		cli
+		jsr serial_int_en
+loop:	;lda rxcnt
+		;beq loop
+		;dec rxcnt
+		;jsr statled
 		jmp loop
 
 delay:	ldx #$50		; Initialize delay counter
@@ -63,8 +67,6 @@ doneMsg:
 .asc "Done executing program!", $0A, $0D, $00
 rxMsg:
 .asc "Got byte!", $0D, $0A, $00
-b2hex_lut:
-.asc "0123456789ABCDEF"
 ;end:
 ;		.dsb ($1000-(end-start)-4),$FF
 ;		.word init
