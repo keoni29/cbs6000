@@ -5,10 +5,10 @@
 //	- Use kickassembler to assemble
 //	- Included PC program for sending data to the CBS (linux-only)
 //	- Pin 0 is reserved for data-in (because of optimizations)
-.const din 		= 1
-.const sck 		= 2 
-.const dout	 	= 4
-.const run		= 8
+.const din 		= 1		;p0
+.const sck 		= 2		;p1
+.const dout	 	= 4		;p2
+.const run		= 8		;p3
 .const buff 	= $02
 .const addr 	= $03
 .const base		= $0200

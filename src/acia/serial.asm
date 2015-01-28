@@ -2,74 +2,53 @@
 ; Author	Koen van Vliet	<8by8mail@gmail.com>
 #define SPMODE	6
 #define SS	0
+;#define _ACIA_SETUP (1<<7) | (1<<4) | (1<<0)
+#define _ACIA_SETUP (1<<4) | (1<<0)
+; Notes on ACIA setup
+; * Serial clock/16
+; * 8b 2s no parity
+; * Receive irq enabled
 ;=====================================================================
 ; S E R I A L  O U T P U T
 ;=====================================================================
 serial_init:
-		lda #<cbaud				; Set baudrate
-		sta TAL
-		lda #>cbaud
-		sta TAH
+		lda #3					; Reset ACIA
+		sta ACIA_CR
+		lda #_ACIA_SETUP		; Initialize ACIA
+		sta ACIA_CR
 		lda #0					; Initialize rx buffer
 		sta rxcnt
 		sta rxp
-		lda #(1<<SS)			; Set SS pin to output
-		ora DDR
-		sta DDR
-		jsr sdout
 		rts
 
-sdin:	pha
-		lda #(1<<SS)			; Set SS
-		ora PORT
-		sta PORT
-		lda #%00010001			; Serial port = input
-		sta CRA
-		lda #%10001000			; Enable serial interrupts
-		sta ICR
-		pla
-		rts
-sdout:	pha
-		lda #%00001000			; Disable serial interrupts
-		sta ICR
-		lda #$FF^(1<<SS)		; Clear SS
-		and PORT
-		sta PORT
-		lda #(1<<SS)
-		lda #%01010001			; Serial port = output
-		sta CRA
-		pla
+putc:	sta ACIA_DR				; Send char
+wputc:	lda ACIA_SR				; Wait until char can be sent
+		and #2
+		beq wputc
 		rts
 
-puts:	tya
-		pha
-puts_nextch:
-		ldy #0
-		lda (sstr),y			; Load character from ram
-		cmp #0
-		beq puts_strterm		; Terminate if zero
-		sta SDR
-		tya						; Advance to next character
-		jsr sstr_inca			
-		jmp puts_nextch
-puts_strterm:
-		pla
-		tay
+; Print string over serial
+; Input 	sstr (pointer)
+; Uses		Y
+puts:	ldy #0
+putsl:	lda (sstr),y
+		beq putsr
+		jsr putc
+		lda #0
+		jsr sstr_inca
+		jmp putsl
+putsr:	jsr sstr_inca
 		rts
 
-putc:	sta SDR
-		txa
-		pha
-		ldx #32
-putc_wait:
-		dex
-		;lda ICR
-		;and #(1<<3)
-		;beq putc_wait
-		bne putc_wait
-		pla
-		tax
+sstr_inca:						; Increment string pointer by 1 + A
+		sec
+		adc sstr
+		sta sstr
+		lda #0
+		adc sstr + 1
+		sta sstr + 1
 		rts
+
 
 ; Print byte as hexadecimal
 ; input		A
@@ -91,14 +70,14 @@ puth:	sta swp_str
 		tay
 		rts
 
-; ISR Receive byte from CIA serial port
+; ISR Receive byte from ACIA serial port
 isr_rx:	pha
 		txa
 		pha
 		tya
 		pha
-		lda ICR
-		ldx SDR					; Read character from CIA
+		lda ACIA_SR				; Check if a character was received
+		ldx ACIA_DR				; Read character from ACIA
 		lda #64
 		and rxcnt				; Check if buffer is full
 		bne rx_full

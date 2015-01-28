@@ -20,13 +20,13 @@ addr = $02
 
 #define CS 1
 
-* = $0200
+* = $1000
 init:	lda #(DISROM | STATLED)		; Disable the ROM
 		sta $00
 		ora $01
 		sta $01
 
-		lda #$FF						; Set port B to output for r2r dac
+		lda #$FF					; Set port B to output for r2r dac
 		sta PBDDR
 
 		lda #<isr					; Set interrupt vector
@@ -76,5 +76,5 @@ res:	lda #<sound					; Loop sample
 		sta addr + 1
 		rti
 sound:
-;.bin	0,0,"dj.bin"
+.bin	0,0,"dj.bin"
 soundend:

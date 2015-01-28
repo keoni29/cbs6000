@@ -5,8 +5,8 @@
 #include "zeropage.inc"
 #define cbaud 1					; Maximum serial transmission rate
 
-;* = $0200						; Program loads at $0200
-* = $E000
+* = $0200						; Program loads at $0200
+;* = $E000
 
 start:
 ;=====================================================================
@@ -21,36 +21,29 @@ init:	sei						; Disable interrupts
 		sta $00
 		ora $01
 		sta $01
-		
+		lda #(1<<3)				; Disable CIA serial port interrupts
+
 		jsr serial_init			; Initialize the serial port
-		jsr dbg_init			; Initialize debug features
 		
 		lda #<bootMsg			; Print a string over serial
 		sta sstr
 		lda #>bootMsg
 		sta sstr + 1
 		jsr puts
-		lda #<doneMsg			; Print a string over serial
-		sta sstr
-		lda #>doneMsg
-		sta sstr + 1
-		jsr puts
-		
-		cli
-		jsr sdin				; Get ready to receive characters
-loop:	
-		jsr getc				; Get character from rx buffer
-		beq loop				; Do nothing if received character is 0
-		;jsr sdout
-		;jsr putc				; Echo character
-		;jsr sdin
-		jsr statled
 
-		jmp loop				; Loop forever
+loop:	jsr statled
+		jsr delay
+		jmp loop
+
+delay:	ldx #$50		; Initialize delay counter
+outer:	ldy #$00		; 256*(7 + 256*(2+3)) = 329472 cycles ~=1.5Hz
+inner:	dey
+		bne inner
+		dex
+		bne outer
+		rts
 
 #include "serial.asm"
-#include "string.asm"
-#include "debug.asm"
 
 ;=====================================================================
 ; L E D   L I G H T   C O N T R O L
@@ -63,16 +56,16 @@ statled:lda #STATLED			; Toggle status LED
 ; D A T A
 ;=====================================================================
 bootMsg:
-.asc " *** 6510 Micro Computer System *** ", $0D,$0A
-.asc " 128K RAM SYSTEM  126976 BYTES FREE ", $0D,$0A
-.asc " READY to Rock! ", $0D, $00
+.asc "*** 6510 Micro Computer System ***", $0A, $0D
+.asc "128K RAM SYSTEM  126976 BYTES FREE", $0A, $0D
+.asc "READY to Rock!", $0A, $0D, $00
 doneMsg:
-.asc "Done executing program!", $0D, $0A, $00
+.asc "Done executing program!", $0A, $0D, $00
 rxMsg:
 .asc "Got byte!", $0D, $0A, $00
 b2hex_lut:
 .asc "0123456789ABCDEF"
-end:
-		.dsb ($1000-(end-start)-4),$FF
-		.word init
-		.word isr_rx
+;end:
+;		.dsb ($1000-(end-start)-4),$FF
+;		.word init
+;		.word isr_rx
