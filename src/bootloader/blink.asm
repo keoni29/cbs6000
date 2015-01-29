@@ -2,12 +2,20 @@
 
 ;*= $e000
 *=$0200
-init:	lda #ledpin
+init:	sei						; Disable interrupts
+		ldx #$FF				; Initialize stack
+		txs
+		cld						; Clear decimal mode
+
+		lda #(ledpin)			; Turn on status LED
 		sta $00
+		ora $01
+		sta $01
+		
 		lda #$00
 loop:	eor #ledpin 
 		sta $01
-		ldx #$10		; Initialize delay counter
+		ldx #$80		; Initialize delay counter
 delay:	ldy #$00		; 256*(7 + 256*(2+3)) = 329472 cycles ~=1.5Hz
 inner:	dey
 		bne inner
@@ -15,6 +23,6 @@ inner:	dey
 		bne delay
 		beq loop		; Jump back to the start
 ;end:
-;		.dsb ($2000-(end-init)-4),$FF
+;		.dsb ($1000-(end-init)-4),$FF
 ;		.byte $00, $e0
 ;		.byte $00, $e0
