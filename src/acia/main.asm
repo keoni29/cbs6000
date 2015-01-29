@@ -7,6 +7,8 @@
 * = $0200						; Program loads at $0200
 ;* = $E000
 
+RX_BUFF = $4000
+
 start:
 ;=====================================================================
 ; M A I N   P R O G R A M
@@ -34,24 +36,37 @@ init:		sei						; Disable interrupts
 			cli
 			jsr serial_int_en
 
-			jsr monitor
+			jsr nextchar
 			jmp init
+
 
 ; Monitor application
 notcr:
-monitor:	
 nextchar:	jsr getc
 			beq nextchar
 			cmp #$60
 			bmi upcase
 			sec
 			sbc #$20		; Convert lowercase to upper
-upcase:	jsr putc			; Echo
-			cmp #$0D		; CR?
-			bne notcr		; No.
-			lda #$0A	; <--
-			jsr putc	; <--
-			jmp monitor
+upcase:		jsr putc		; Echo
+			lda #$0A
+			jmp nextchar
+
+;=====================================================================
+; L E D   L I G H T   C O N T R O L
+;=====================================================================
+statled:lda #STATLED			; Toggle status LED
+		eor $01
+		sta $01
+		rts
+
+delay:	ldx #$50		; Initialize delay counter
+outer:	ldy #$00		; 256*(7 + 256*(2+3)) = 329472 cycles ~=1.5Hz
+inner:	dey
+		bne inner
+		dex
+		bne outer
+		rts
 
 ;=====================================================================
 ; S E R I A L  O U T P U T
@@ -179,34 +194,17 @@ getc:	lda rxcnt				; Check if buffer is empty
 getc_n:	rts
 
 ;=====================================================================
-; L E D   L I G H T   C O N T R O L
-;=====================================================================
-statled:lda #STATLED			; Toggle status LED
-		eor $01
-		sta $01
-		rts
-
-delay:	ldx #$50		; Initialize delay counter
-outer:	ldy #$00		; 256*(7 + 256*(2+3)) = 329472 cycles ~=1.5Hz
-inner:	dey
-		bne inner
-		dex
-		bne outer
-		rts
-
-;=====================================================================
 ; D A T A
 ;=====================================================================
 bootMsg:
-.asc "*** 6510 Micro Computer System ***", $0A, $0D
-.asc "128K RAM SYSTEM  126976 BYTES FREE", $0A, $0D
-.asc "READY to Rock!", $0A, $0D, $00
+		.asc "*** 6510 Micro Computer System ***", $0A, $0D
+		.asc "128K RAM SYSTEM  126976 BYTES FREE", $0A, $0D
+		.asc "READY to Rock!", $0A, $0D, $00
 doneMsg:
-.asc "Done executing program!", $0A, $0D, $00
+		.asc "Done executing program!",$0A, $0D, $00
 rxMsg:
-.asc "Got byte!", $0D, $0A, $00
+		.asc "Got byte!", $0D, $0A, $00
 ;end:
 ;		.dsb ($1000-(end-start)-4),$FF
 ;		.word init
 ;		.word isr_rx
-RX_BUFF:
