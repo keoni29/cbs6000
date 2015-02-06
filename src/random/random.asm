@@ -1,5 +1,5 @@
 #define ROM4K
-#define SEGDELAY 359
+#define SEGDELAY (360*8)-1
 
 * = $E000
 
@@ -30,6 +30,8 @@ MSGL		=	$28
 MSGH		= 	$29
 MSGN		=	$2A
 
+MODE		=	$2B
+
 DIGN		=	$32
 DIG0		=	$33
 DIG1		=	$34
@@ -50,20 +52,15 @@ RESET		cld						; Clear decimal arithmetic mode.
 			lda #(1<<4)|(1<<0)		; Initialize ACIA
 			sta ACIA_CTRL			; * Serial clock/16
 									; * 8b 2s no parity
-			lda #<MSG4				; Clear display
-			sta MSGL
-			lda #>MSG4
-			sta MSGH
-			jsr SHOWMSG
+			jsr CLEAR				; Clear display
 			lda #04					; Status LED pin is output
 			sta DDR
 			jsr ENDIAL				; Enable rotary dial input
 			jsr ENSEG				; Enable seven segment display output
 			cli
-ATTRACT		jmp ATTRACT
-
-
-			lda #(MSGEND-MSGSTART)/6		; 4 messages total
+RESTART		lda #0
+			sta MODE				; Set MODE to 0 (Attract)
+ATTRACT		lda #(MSGEND-MSGSTART)/6		; 4 messages total
 			sta MSGN
 			lda #<MSG1
 			sta MSGL
@@ -78,9 +75,35 @@ NEXTMSG		jsr SHOWMSG				; Show message
 			adc MSGH
 			sta MSGH
 			jsr DELAY
+			jsr DELAY
+			lda MODE				; Dial activity?
+			bne PLAY				; Yes, Play game!
 			dec MSGN
 			bne NEXTMSG				; Repeat for all messages
 			jmp ATTRACT				; Go back to the first one
+PLAY		lda #2
+			sta MODE				; Set mode 2 (Waiting for dial input)
+			lda #<GAME1
+			sta MSGL
+			lda #>GAME1
+			sta MSGH
+			jsr SHOWMSG				; Show instructions
+			jsr DELAY
+			jsr DELAY
+			lda #<GAME2
+			sta MSGL
+			lda #>GAME2
+			sta MSGH
+			jsr SHOWMSG				; Show instructions
+			jsr DELAY
+			jsr DELAY
+			jsr DELAY
+			jsr CLEAR				; Clear display
+			lda #1
+PLAYWAIT	cmp MODE				; Wait for input
+			bne PLAYWAIT
+			
+			jmp RESTART				; Play again
 
 PRBCD		ldy #0					; Repeat for all 6 digits
 			clc
@@ -91,6 +114,13 @@ PUTBCD		lda DIG1,Y				; Move all digits one to the left
 			iny
 			cpy #6
 			bne PUTBCD
+			rts
+
+CLEAR		lda #<CLR				; Clear display
+			sta MSGL
+			lda #>CLR
+			sta MSGH
+			jsr SHOWMSG
 			rts
 
 SHOWMSG		ldy #6					; Repeat for all 6 digits
@@ -147,9 +177,18 @@ DIAL		tya
 			lda #$FD
 			sec
 			sbc TAL
-			BMI INVALID
-			jsr PRBYTE				; Show number on display
+			bmi INVALID
+			clc
+			adc #1
+			cmp #10					; Check if 10 pulses
+			beq DIALZERO			; Yes, a 0 was dialed
+			bpl INVALID				; Otherwise discard number
+			jmp VALID
+DIALZERO	lda #0
+VALID		jsr PRBCD				; Show number on display
 INVALID		jsr ENDIAL				; Reset dial
+			lda #1					; Set mode to 80 (dial activity)
+			sta MODE
 			pla
 			tay
 			pla
@@ -160,14 +199,13 @@ INVALID		jsr ENDIAL				; Reset dial
 SEVSEG		tya
 			pha
 			ldy DIGN
+			sty PRA
 			lda DIG0,Y				; Get character
 			sec
 			sbc #$20				; Convert from ascii
 			tax
 			lda SEGS,X				; Lookup shape
 			sta PRB					; Drive LED segments
-			lda DIGN
-			sta PRA
 			lda #05
 			cmp DIGN				; * At last digit?				
 			bne NEXTSEG				; * Yes, return to first one.
@@ -216,12 +254,21 @@ WAIT		 LDA ACIA_SR	  ;*Load status register for ACIA
 				PLA				 ;*Restore A
 				RTS				 ;*Done, over and out...
 
+CLR			.asc	"      "
 MSGSTART
 MSG1		.asc	"RAAD  "
 MSG2		.asc	"HET   "
 MSG3		.asc	"GETAL "
-MSG4		.asc	"      "
 MSGEND
+GAME1		.asc	"DRAAI "
+GAME2		.asc	"GETAL "
+GAMEWIN		.asc	"GOED!!"
+GAMELOSE	.asc	"FOUT  "
+GAMEHIGH	.asc	"HOGER "
+GAMELOW		.asc	"LAGER "
+GAMEBEST	.asc	"BESTE "
+GAMESCORE	.asc	"SCORE "
+
 
 SEGS		.byte $00, $82, $21, $00, $00, $00, $00, $02, $39, $0F	; Symbols
 			.byte $00, $00, $00, $40, $80, $52
