@@ -30,9 +30,6 @@ MSGL		=	$28
 MSGH		= 	$29
 MSGN		=	$2A
 
-INTL		=	$30
-INTH		=	$31
-INTERRUPT	=	INTL
 DIGN		=	$32
 DIG0		=	$33
 DIG1		=	$34
@@ -53,29 +50,20 @@ RESET		cld						; Clear decimal arithmetic mode.
 			lda #(1<<4)|(1<<0)		; Initialize ACIA
 			sta ACIA_CTRL			; * Serial clock/16
 									; * 8b 2s no parity
-			lda #"4"					; Load some test values
-			sta DIG0
-			lda #"5"
-			sta DIG1
-			lda #"6"
-			sta DIG2
-			lda #"7"
-			sta DIG3
-			lda #"8"
-			sta DIG4
-			lda #"9"
-			sta DIG5
-
+			lda #<MSG4				; Clear display
+			sta MSGL
+			lda #>MSG4
+			sta MSGH
+			jsr SHOWMSG
 			lda #04					; Status LED pin is output
 			sta DDR
-
-			lda #<SEVSEG			; Load interrupt vector
-			sta INTL
-			lda #>SEVSEG
-			sta INTH
-			jsr ENSEG				; Enable seven segment display
+			jsr ENDIAL				; Enable rotary dial input
+			jsr ENSEG				; Enable seven segment display output
 			cli
-ATTRACT		lda #(MSGEND-MSGSTART)/6		; 4 messages total
+ATTRACT		jmp ATTRACT
+
+
+			lda #(MSGEND-MSGSTART)/6		; 4 messages total
 			sta MSGN
 			lda #<MSG1
 			sta MSGL
@@ -91,39 +79,7 @@ NEXTMSG		jsr SHOWMSG				; Show message
 			sta MSGH
 			jsr DELAY
 			dec MSGN
-			bne NEXTMSG				; When all messages are shown
-			lda #9
-			jsr PRBCD
-			jsr DELAY
-			lda #8
-			jsr PRBCD
-			jsr DELAY
-			lda #7
-			jsr PRBCD
-			jsr DELAY
-			lda #6
-			jsr PRBCD
-			jsr DELAY
-			lda #5
-			jsr PRBCD
-			jsr DELAY
-			lda #4
-			jsr PRBCD
-			jsr DELAY
-			lda #3
-			jsr PRBCD
-			jsr DELAY
-			lda #2
-			jsr PRBCD
-			jsr DELAY
-			lda #1
-			jsr PRBCD
-			jsr DELAY
-			lda #0
-			jsr PRBCD
-			jsr DELAY
-			jsr DELAY
-			jsr DELAY
+			bne NEXTMSG				; Repeat for all messages
 			jmp ATTRACT				; Go back to the first one
 
 PRBCD		ldy #0					; Repeat for all 6 digits
@@ -145,6 +101,14 @@ PUTDIS		dey
 			bne PUTDIS
 			rts
 
+ENDIAL		lda #$FF				; Start counter A on $FFFF
+			sta TAL
+			sta TAH
+			lda #%00110001			; Count positive CNT transistions
+			sta CRA
+			lda #%10010000			; Enable /FLAG interrupts
+			sta ICR
+			rts
 
 ENSEG		lda #0					; Go to first digit
 			sta DIGN
@@ -163,14 +127,38 @@ ENSEG		lda #0					; Go to first digit
 			sta ICR
 			rts
 
-ISR			jmp (INTERRUPT)
-
-SEVSEG		pha
+ISR			pha
 			txa
 			pha
-			tya
+			ldx ICR					; Acknowledge interrupt
+			txa
+			and #2					; Check timer B overflow
+			bne SEVSEG				; Yes, refresh display
+			txa
+			and #16					; Check FLAG set
+			bne DIAL				; Process counted pulses
+			pla
+			tax
+			pla
+			rti
+
+DIAL		tya
 			pha
-			lda ICR					; Acknowledge interrupt
+			lda #$FD
+			sec
+			sbc TAL
+			BMI INVALID
+			jsr PRBYTE				; Show number on display
+INVALID		jsr ENDIAL				; Reset dial
+			pla
+			tay
+			pla
+			tax
+			pla
+			rti
+
+SEVSEG		tya
+			pha
 			ldy DIGN
 			lda DIG0,Y				; Get character
 			sec
@@ -180,7 +168,7 @@ SEVSEG		pha
 			sta PRB					; Drive LED segments
 			lda DIGN
 			sta PRA
-			lda #06
+			lda #05
 			cmp DIGN				; * At last digit?				
 			bne NEXTSEG				; * Yes, return to first one.
 			lda #0
@@ -206,6 +194,27 @@ STATLED		lda #4					; Toggle status LED
 			eor $01
 			sta $01
 			rts
+
+PRBYTE		PHA				 ;Save A for LSD.
+				LSR
+				LSR
+				LSR				 ;MSD to LSD position.
+				LSR
+				JSR PRHEX		 ;Output hex digit.
+				PLA				 ;Restore A.
+PRHEX		 AND #$0F		  ;Mask LSD for hex print.
+				ORA #$B0		  ;Add "0".
+				CMP #$BA		  ;Digit?
+				BCC ECHO		  ;Yes, output it.
+				ADC #$06		  ;Add offset for letter.
+ECHO		  PHA				 ;*Save A
+				AND #$7F		  ;*Change to "standard ASCII"
+				STA ACIA_DAT	 ;*Send it.
+WAIT		 LDA ACIA_SR	  ;*Load status register for ACIA
+				AND #$02		  ;*Mask bit 2.
+				BEQ	 WAIT	 ;*ACIA not done yet, wait.
+				PLA				 ;*Restore A
+				RTS				 ;*Done, over and out...
 
 MSGSTART
 MSG1		.asc	"RAAD  "
