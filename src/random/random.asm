@@ -40,6 +40,7 @@ DIG2		=	$35
 DIG3		=	$36
 DIG4		=	$37
 DIG5		=	$38
+DIGA		=	$39
 
 
 start:
@@ -74,7 +75,7 @@ RESET		cld						; Clear decimal arithmetic mode.
 			sta INTH
 			jsr ENSEG				; Enable seven segment display
 			cli
-ATTRACT		lda #18
+ATTRACT		lda #(MSGEND-MSGSTART)/6		; 4 messages total
 			sta MSGN
 			lda #<MSG1
 			sta MSGL
@@ -82,7 +83,7 @@ ATTRACT		lda #18
 			sta MSGH
 NEXTMSG		jsr SHOWMSG				; Show message
 			clc						; Go to next message
-			lda #1
+			lda #6
 			adc MSGL
 			sta MSGL
 			lda #0
@@ -91,14 +92,59 @@ NEXTMSG		jsr SHOWMSG				; Show message
 			jsr DELAY
 			dec MSGN
 			bne NEXTMSG				; When all messages are shown
+			lda #9
+			jsr PRBCD
+			jsr DELAY
+			lda #8
+			jsr PRBCD
+			jsr DELAY
+			lda #7
+			jsr PRBCD
+			jsr DELAY
+			lda #6
+			jsr PRBCD
+			jsr DELAY
+			lda #5
+			jsr PRBCD
+			jsr DELAY
+			lda #4
+			jsr PRBCD
+			jsr DELAY
+			lda #3
+			jsr PRBCD
+			jsr DELAY
+			lda #2
+			jsr PRBCD
+			jsr DELAY
+			lda #1
+			jsr PRBCD
+			jsr DELAY
+			lda #0
+			jsr PRBCD
+			jsr DELAY
+			jsr DELAY
+			jsr DELAY
 			jmp ATTRACT				; Go back to the first one
 
-SHOWMSG		jsr STATLED
-			ldy #6
-PUTDIS		dey
-			lda (MSGL),Y
+PRBCD		ldy #0					; Repeat for all 6 digits
+			clc
+			adc #$30
+			sta DIGA
+PUTBCD		lda DIG1,Y				; Move all digits one to the left
 			sta DIG0,Y
+			iny
+			cpy #6
+			bne PUTBCD
+			rts
+
+SHOWMSG		ldy #6					; Repeat for all 6 digits
+PUTDIS		dey
+			lda (MSGL),Y			; Copy string
+			sta DIG0,Y				; to display
+			cpy #0
 			bne PUTDIS
+			rts
+
 
 ENSEG		lda #0					; Go to first digit
 			sta DIGN
@@ -161,10 +207,12 @@ STATLED		lda #4					; Toggle status LED
 			sta $01
 			rts
 
-MSG1		.asc	"012345"
-MSG2		.asc	"6789AB"
-MSG3		.asc	"CDEFGH"
+MSGSTART
+MSG1		.asc	"RAAD  "
+MSG2		.asc	"HET   "
+MSG3		.asc	"GETAL "
 MSG4		.asc	"      "
+MSGEND
 
 SEGS		.byte $00, $82, $21, $00, $00, $00, $00, $02, $39, $0F	; Symbols
 			.byte $00, $00, $00, $40, $80, $52
