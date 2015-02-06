@@ -1,0 +1,26 @@
+TAL = $0A
+TAH = $00
+TBL = $A0
+TBH = $00
+
+CRB = #%01010111	; Timer B controls DIR line and makes sure the stepper reverses before the last track
+CRA = #%10010111	; Timer A controls the STEP line
+
+
+D004:fl fh A0 00
+D00F:57
+D00E:97
+
+CIA = $D000
+PRA = CIA + $0
+PRB = CIA + $1
+DDRA = CIA + $2
+DDRB = CIA + $3
+TAL = CIA + $4
+TAH = CIA + $5
+TBL = CIA + $6
+TBH = CIA + $7
+SDR = CIA + $C
+ICR = CIA + $D
+CRA = CIA + $E
+CRB = CIA + $F

@@ -2,14 +2,29 @@
 ; Just a few mods to the original monitor.
 ; Modified for the CBS6000 by Koen van Vliet <8by8mail@gmail.com>
 
-; START @ $0200
-;*			  = $0200
+#define ROM4K
+#define SEGDELAY 359
+
 * = $E000
 
 ACIA		  = $D800
 ACIA_CTRL	= ACIA+0
 ACIA_SR	  = ACIA+0
 ACIA_DAT	 = ACIA+1
+
+CIA = $D000
+PRA = CIA + $0
+PRB = CIA + $1
+DDRA = CIA + $2
+DDRB = CIA + $3
+TAL = CIA + $4
+TAH = CIA + $5
+TBL = CIA + $6
+TBH = CIA + $7
+SDR = CIA + $C
+ICR = CIA + $D
+CRA = CIA + $E
+CRB = CIA + $F
 
 IN			 = $0200			 ;*Input buffer
 XAML		  = $24				;*Index pointers
@@ -22,9 +37,24 @@ YSAV		  = $2A
 MODE		  = $2B
 MSGL		= $2C
 MSGH		= $2D
-COUNTER		= $2E
+COUNTER		= $2E ; NOT USED
 CRC			= $2F
 CRCCHECK	= $30
+
+INTL	=	$31
+INTH	=	$32
+INTERRUPT	=	INTL
+
+DIGN	=	$33
+DIG0	=	$34
+DIG1	=	$35
+DIG2	=	$36
+DIG3	=	$37
+DIG4	=	$38
+DIG5	=	$39
+
+
+
 
 STATLED = $04
 
@@ -38,6 +68,26 @@ RESET		CLD				 		; Clear decimal arithmetic mode.
 			lda #(1<<4)|(1<<0)		; Initialize ACIA
 			sta ACIA_CTRL			; * Serial clock/16
 									; * 8b 2s no parity
+
+			lda #4					; Load some test values
+			sta DIG0
+			lda #5
+			sta DIG1
+			lda #6
+			sta DIG2
+			lda #7
+			sta DIG3
+			lda #8
+			sta DIG4
+			lda #9
+			sta DIG5
+
+			lda #<SEVSEG			; Load interrupt vector
+			sta INTL
+			lda #>SEVSEG
+			sta INTH
+			jsr ENSEG				; Enable seven segment display
+			
 			LDA #$0D
 			JSR ECHO				;* New line.
 			LDA #$0A
@@ -71,7 +121,8 @@ BACKSPACE	DEY				 ;Backup text index.
 			JSR ECHO
 			LDA #$88		;*Backspace again to get to correct pos.
 			JSR ECHO
-NEXTCHAR	 LDA ACIA_SR	  ;*See if we got an incoming char
+NEXTCHAR	jsr SEVSEG
+			LDA ACIA_SR	  ;*See if we got an incoming char
 				AND #$01		  ;*Test bit 1
 				BEQ NEXTCHAR	 ;*Wait for character
 				LDA ACIA_DAT	 ;*Load char
@@ -99,8 +150,8 @@ NEXTITEM	 LDA IN,Y		  ;Get character.
 				BEQ SETSTOR	  ;Yes, set STOR mode.
 			CMP #$D2		  ;"R"?
 				BEQ RUN			;Yes, run user program.
-				CMP #$CC		  ;* "L"?
-				BEQ LOADINT	  ;* Yes, Load Intel Code.
+				;CMP #$CC		  ;* "L"?
+				;BEQ LOADINT	  ;* Yes, Load Intel Code.
 				STX L			  ;$00->L.
 				STX H			  ; and H.
 				STY YSAV		  ;Save Y for comparison.
@@ -131,8 +182,8 @@ RUN			JSR ACTRUN		;* JSR to the Address we want to run.
 			JMP	SOFTRESET	;* When returned for the program, reset EWOZ.
 ACTRUN		JMP (XAML)		;Run at current XAM index.
 
-LOADINT		JSR LOADINTEL	;* Load the Intel code.
-			JMP	SOFTRESET	;* When returned from the program, reset EWOZ.
+;LOADINT		JSR BINLOAD		;* Load the Intel code.
+;			JMP	SOFTRESET	;* When returned from the program, reset EWOZ.
 
 NOESCAPE	 BIT MODE		  ;Test MODE byte.
 				BVC NOTSTOR	  ;B6=0 for STOR, 1 for XAM and BLOCK XAM
@@ -205,133 +256,82 @@ PRINT		LDA (MSGL),Y
 			BNE PRINT
 DONE		RTS 
 
-; Load an program in Intel Hex Format.
-LOADINTEL	LDA #$0D
-			JSR ECHO		;New line.
-			LDA #<MSG2
-			STA MSGL
-			LDA #>MSG2
-			STA MSGH
-			JSR SHWMSG		;Show Start Transfer.
-			LDA #$0D
-			JSR ECHO		;New line.
-			LDY #$00
-			STY CRCCHECK	;If CRCCHECK=0, all is good.
-INTELLINE	JSR GETCHAR		;Get char
-			STA IN,Y		;Store it
-			INY				;Next
-			CMP	#$1B		;Escape ?
-			BEQ	INTELDONE	;Yes, abort.
-			CMP #$0D		;Did we find a new line ?
-			BNE INTELLINE	;Nope, continue to scan line.
-			LDY #$FF		;Find (:)
-FINDCOL		INY
-			LDA IN,Y
-			CMP #$3A		; Is it Colon ?
-			BNE FINDCOL		; Nope, try next.
-			INY				; Skip colon
-			LDX	#$00		; Zero in X
-			STX	CRC			; Zero Check sum
-			JSR GETHEX		; Get Number of bytes.
-			STA COUNTER		; Number of bytes in Counter.
-			CLC				; Clear carry
-			ADC CRC			; Add CRC
-			STA CRC			; Store it
-			JSR GETHEX		; Get Hi byte
-			STA STH			; Store it
-			CLC				; Clear carry
-			ADC CRC			; Add CRC
-			STA CRC			; Store it
-			JSR GETHEX		; Get Lo byte
-			STA STL			; Store it
-			CLC				; Clear carry
-			ADC CRC			; Add CRC
-			STA CRC			; Store it
-			LDA #$2E		; Load "."
-			JSR ECHO		; Print it to indicate activity.
-NODOT		JSR GETHEX		; Get Control byte.
-			CMP	#$01		; Is it a Termination record ?
-			BEQ	INTELDONE	; Yes, we are done.
-			CLC				; Clear carry
-			ADC CRC			; Add CRC
-			STA CRC			; Store it
-INTELSTORE	JSR GETHEX		; Get Data Byte
-			STA (STL,X)		; Store it
-			CLC				; Clear carry
-			ADC CRC			; Add CRC
-			STA CRC			; Store it
-			INC STL			; Next Address
-			BNE TESTCOUNT	; Test to see if Hi byte needs INC
-			INC STH			; If so, INC it.
-TESTCOUNT	DEC	COUNTER		; Count down.
-			BNE INTELSTORE	; Next byte
-			JSR GETHEX		; Get Checksum
-			LDY #$00		; Zero Y
-			CLC				; Clear carry
-			ADC CRC			; Add CRC
-			BEQ INTELLINE	; Checksum OK.
-			LDA #$01		; Flag CRC error.
-			STA	CRCCHECK	; Store it
-			JMP INTELLINE	; Process next line.
 
-INTELDONE	LDA CRCCHECK	; Test if everything is OK.
-			BEQ OKMESS		; Show OK message.
-			LDA #$0D
-			JSR ECHO		;New line.
-			LDA #<MSG4		; Load Error Message
-			STA MSGL
-			LDA #>MSG4
-			STA MSGH
-			JSR SHWMSG		;Show Error.
-			LDA #$0D
-			JSR ECHO		;New line.
+GETCHAR		LDA ACIA_SR		;See if we got an incoming char
+			AND #$01		;Test bit 1 (rx register full)
+			BEQ GETCHAR	  	;Wait for character
+			LDA ACIA_DAT	;Load char
 			RTS
 
-OKMESS		LDA #$0D
-			JSR ECHO		;New line.
-			LDA #<MSG3		;Load OK Message.
-			STA MSGL
-			LDA #>MSG3
-			STA MSGH
-			JSR SHWMSG		;Show Done.
-			LDA #$0D
-			JSR ECHO		;New line.
-			RTS
+ENSEG		lda #0					; Go to first digit
+			sta DIGN
+			lda #$07				; Set PA0..PA2 to output 
+			ora DDRA
+			sta DDRA
+			lda #$FF				; Set PB0..PB7 to output
+			sta DDRB
+			lda #<SEGDELAY			; Set timer B delay
+			sta TBL
+			lda #>SEGDELAY
+			sta TBH
+			lda #%00010001			; Start timer in continuous mode
+			sta CRB
+			lda #%10000010			; Enable timer B underflow interrupts
+			sta ICR
+			rts
 
-GETHEX		LDA IN,Y		;Get first char.
-			EOR #$30
-			CMP #$0A
-			BCC DONEFIRST
-			ADC #$08
-DONEFIRST	ASL
-			ASL
-			ASL
-			ASL
-			STA L
-			INY
-			LDA IN,Y		;Get next char.
-			EOR #$30
-			CMP #$0A
-			BCC DONESECOND
-			ADC #$08
-DONESECOND	AND #$0F
-			ORA L
-			INY
-			RTS
+ISR			jmp (INTERRUPT)
 
-GETCHAR	  LDA ACIA_SR	  ;See if we got an incoming char
-				AND #$01		  ;Test bit 1 (rx register full)
-				BEQ GETCHAR	  ;Wait for character
-				LDA ACIA_DAT	 ;Load char
-			RTS
+DIAL		pha
+			; Code goes here
+			pla
+			rti	
+
+SEVSEG		pha
+			txa
+			pha
+			tya
+			pha
+			ldy DIGN
+			ldx DIG0,Y				; Get character
+			lda SEGS,X				; Lookup shape
+			sta PRB					; Drive LED segments
+			lda DIGN
+			sta PRA
+			lda #06
+			cmp DIGN				; * At last digit?				
+			bne NEXTSEG				; * Yes, return to first one.
+			lda #0
+			sta DIGN
+			beq ENDSEG
+NEXTSEG		inc DIGN				; Go to the next digit
+ENDSEG		pla
+			tay
+			pla
+			tax
+			pla
+			rts
+
 
 MSG1		.asc "Welcome to EWOZ 1.0.",0
-MSG2		.asc "Start Intel Hex code Transfer.",0
-MSG3		.asc "Intel Hex Imported OK.",0
-MSG4		.asc "Intel Hex Imported with checksum error.",0
-
+MSG2		.asc "Start binary transfer...",0
+MSG3		.asc "Binary transfer complete!",0
+SEGS		.byte $3F, $06, $5B, $4F, $66, $6D, $7D, $07, $7F, $6F
+			;.byte $00, $00, $00, $48, $00, $53, $00
+			.byte $77, $7C, $39, $5E, $79, $71, $6F, $76, $06, $1E
+			.BYTE $76, $38, $55, $54, $3F, $73, $67, $50, $6D, $78
+			.BYTE $3E, $FE, $1C, $76, $6E, $5B
+			.byte 
 end:
+#ifdef ROM8K
 		.dsb ($2000-(end-start)-6),$FF
 		.word RESET
 		.word RESET
+		.word ISR
+#endif
+#ifdef ROM4K
+		.dsb ($1000-(end-start)-6),$FF
 		.word RESET
+		.word RESET
+		.word ISR
+#endif
