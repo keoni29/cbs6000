@@ -6,6 +6,8 @@
 DDR = $00
 PORT = $01
 
+RX_BUFF = $0200
+
 CIA = $D000
 PRA = CIA + $0
 PRB = CIA + $1
@@ -32,6 +34,9 @@ MSGN		=	$2A
 
 MODE		=	$2B
 
+RXP			=	$2C
+RXCNT		=	$2D
+
 DIGN		=	$32
 DIG0		=	$33
 DIG1		=	$34
@@ -57,9 +62,11 @@ RESET		cld						; Clear decimal arithmetic mode.
 			sta DDR
 			jsr ENDIAL				; Enable rotary dial input
 			jsr ENSEG				; Enable seven segment display output
-			cli
 RESTART		lda #0
 			sta MODE				; Set MODE to 0 (Attract)
+			sta RXCNT
+			sta RXP
+			cli
 ATTRACT		lda #(MSGEND-MSGSTART)/6		; 4 messages total
 			sta MSGN
 			lda #<MSG1
@@ -75,35 +82,74 @@ NEXTMSG		jsr SHOWMSG				; Show message
 			adc MSGH
 			sta MSGH
 			jsr DELAY
+			lda RXCNT				; Dial activity?
+			bne PLAY				; Yes, Play game!
 			jsr DELAY
-			lda MODE				; Dial activity?
+			lda RXCNT				; Dial activity?
 			bne PLAY				; Yes, Play game!
 			dec MSGN
 			bne NEXTMSG				; Repeat for all messages
 			jmp ATTRACT				; Go back to the first one
-PLAY		lda #2
-			sta MODE				; Set mode 2 (Waiting for dial input)
-			lda #<GAME1
+PLAY		jsr CLEAR				; Clear display
+PLAYWAIT	lda PORT				; Test button
+			and #1
+			bne COMPARE
+			lda RXCNT				; Wait for input
+			beq PLAYWAIT
+			jsr GETN
+			jsr PRBCD				; Display number
+			jmp PLAYWAIT
+COMPARE		ldy #0
+NEXTCOM		lda DIG0,Y
+			jsr PRBYTE
+			lda GETAL,Y
+			jsr PRBYTE
+			lda DIG0,Y
+			cmp GETAL,Y
+			beq	COMPOK
+			bmi HI					; Is GETAL < DIGIT?
+			bpl LO					; Is GETAL > DIGIT?
+COMPOK		iny
+			cpy #6
+			bne NEXTCOM
+WINNER		lda #<GAMEWIN
 			sta MSGL
-			lda #>GAME1
+			lda #>GAMEWIN
 			sta MSGH
-			jsr SHOWMSG				; Show instructions
-			jsr DELAY
-			jsr DELAY
-			lda #<GAME2
+			jmp NEXTGAME			; Play again
+HI			lda #<GAMEHIGH
 			sta MSGL
-			lda #>GAME2
+			lda #>GAMEHIGH
 			sta MSGH
-			jsr SHOWMSG				; Show instructions
+			jmp NEXTGAME
+LO			lda #<GAMELOW
+			sta MSGL
+			lda #>GAMELOW
+			sta MSGH
+			jmp NEXTGAME
+EQUAL		lda #<GAMELOW
+			sta MSGL
+			lda #>GAMELOW
+			sta MSGH
+NEXTGAME	jsr SHOWMSG				; Show instructions
 			jsr DELAY
 			jsr DELAY
+			jsr CLEAR
 			jsr DELAY
-			jsr CLEAR				; Clear display
-			lda #1
-PLAYWAIT	cmp MODE				; Wait for input
-			bne PLAYWAIT
-			
-			jmp RESTART				; Play again
+			jmp RESTART
+
+; Get character from rx buffer.
+; Affected	 A, X
+GETN		lda RXCNT				; Check if buffer is empty
+			beq GETNN
+			lda RXP					; offset = rxp - rxcnt
+			sec
+			sbc RXCNT
+			and #63
+			dec RXCNT				; Go to next byte in buffer
+			tax
+			lda RX_BUFF,x			; Load byte from buffer
+GETNN		rts
 
 PRBCD		ldy #0					; Repeat for all 6 digits
 			clc
@@ -185,10 +231,18 @@ DIAL		tya
 			bpl INVALID				; Otherwise discard number
 			jmp VALID
 DIALZERO	lda #0
-VALID		jsr PRBCD				; Show number on display
+VALID		tax
+			lda #64
+			and RXCNT				; Check if buffer is full
+			bne INVALID
+			lda #63
+			and RXP	            	; Limit buffer size to 64 bytes
+			tay
+			txa
+			sta RX_BUFF,y	      	; Store character in buffer
+			inc RXP              	; Advance buffer pointer
+			inc RXCNT              	; Increase read offset
 INVALID		jsr ENDIAL				; Reset dial
-			lda #1					; Set mode to 80 (dial activity)
-			sta MODE
 			pla
 			tay
 			pla
@@ -201,9 +255,10 @@ SEVSEG		tya
 			ldy DIGN
 			sty PRA
 			lda DIG0,Y				; Get character
+			beq SEVSEGNUL
 			sec
 			sbc #$20				; Convert from ascii
-			tax
+SEVSEGNUL	tax
 			lda SEGS,X				; Lookup shape
 			sta PRB					; Drive LED segments
 			lda #05
@@ -219,6 +274,7 @@ ENDSEG		pla
 			tax
 			pla
 			rti						; Return from interrupt
+
 
 DELAY		ldx #$00				; Initialize delay counter
 OUTER		ldy #$00				; 256*(7 + 256*(2+3)) = 329472 cycles ~=1.5Hz
@@ -254,20 +310,28 @@ WAIT		 LDA ACIA_SR	  ;*Load status register for ACIA
 				PLA				 ;*Restore A
 				RTS				 ;*Done, over and out...
 
-CLR			.asc	"      "
+CLR			.asc	0,0,0,0,0,0
 MSGSTART
 MSG1		.asc	"RAAD  "
 MSG2		.asc	"HET   "
 MSG3		.asc	"GETAL "
-MSGEND
+OPEN1		.asc	" OPEN "
+OPEN2		.asc	" DAG  "
+OPEN3		.asc	" HHS  "
+OPEN4		.asc	" 2015 "
 GAME1		.asc	"DRAAI "
-GAME2		.asc	"GETAL "
+GAME2		.asc	"AAN DE"
+GAME3		.asc	"SCHIJF"
+MSGEND
+
 GAMEWIN		.asc	"GOED!!"
 GAMELOSE	.asc	"FOUT  "
 GAMEHIGH	.asc	"HOGER "
 GAMELOW		.asc	"LAGER "
 GAMEBEST	.asc	"BESTE "
 GAMESCORE	.asc	"SCORE "
+
+GETAL		.asc	0,0,"6691"
 
 
 SEGS		.byte $00, $82, $21, $00, $00, $00, $00, $02, $39, $0F	; Symbols
