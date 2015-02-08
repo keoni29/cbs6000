@@ -46,6 +46,9 @@ DIG4		=	$37
 DIG5		=	$38
 DIGA		=	$39
 
+BELL		=	$3A
+
+ISTAT		=	$3B
 
 start:
 RESET		cld						; Clear decimal arithmetic mode.
@@ -62,12 +65,20 @@ RESET		cld						; Clear decimal arithmetic mode.
 			sta DDR
 			jsr ENDIAL				; Enable rotary dial input
 			jsr ENSEG				; Enable seven segment display output
+			lda #1<<3
+			ora PRA					; A bell is driven by PA3
+			sta PRA					; Set high to disable the bell
+			lda #1<<3				; Set PA3 to output
+			ora DDRA
+			sta DDRA
+			lda #1<<3				; Turn off bell
+			sta BELL
 RESTART		lda #0
 			sta MODE				; Set MODE to 0 (Attract)
 			sta RXCNT
 			sta RXP
 			cli
-ATTRACT		lda #(MSGEND-MSGSTART)/6		; 4 messages total
+ATTRACT		lda #(MSGEND-MSGSTART)/6
 			sta MSGN
 			lda #<MSG1
 			sta MSGL
@@ -112,7 +123,9 @@ NEXTCOM		lda DIG0,Y
 COMPOK		iny
 			cpy #6
 			bne NEXTCOM
-WINNER		lda #<GAMEWIN
+WINNER		lda #$00				; Turn ON bell
+			sta BELL
+			lda #<GAMEWIN
 			sta MSGL
 			lda #>GAMEWIN
 			sta MSGH
@@ -134,6 +147,8 @@ EQUAL		lda #<GAMELOW
 NEXTGAME	jsr SHOWMSG				; Show instructions
 			jsr DELAY
 			jsr DELAY
+			lda #1<<3				; Turn off bell
+			sta BELL
 			jsr CLEAR
 			jsr DELAY
 			jmp RESTART
@@ -206,11 +221,11 @@ ENSEG		lda #0					; Go to first digit
 ISR			pha
 			txa
 			pha
-			ldx ICR					; Acknowledge interrupt
-			txa
+			lda ICR					; Acknowledge interrupt
+			sta ISTAT				; Store interrupt flags for later use
 			and #2					; Check timer B overflow
 			bne SEVSEG				; Yes, refresh display
-			txa
+SEVSEGRET	lda ISTAT
 			and #16					; Check FLAG set
 			bne DIAL				; Process counted pulses
 			pla
@@ -252,8 +267,10 @@ INVALID		jsr ENDIAL				; Reset dial
 
 SEVSEG		tya
 			pha
+			lda BELL
+			ora DIGN
+			sta PRA					; Select digit
 			ldy DIGN
-			sty PRA
 			lda DIG0,Y				; Get character
 			beq SEVSEGNUL
 			sec
@@ -270,10 +287,7 @@ SEVSEGNUL	tax
 NEXTSEG		inc DIGN				; Go to the next digit
 ENDSEG		pla
 			tay
-			pla
-			tax
-			pla
-			rti						; Return from interrupt
+			jmp SEVSEGRET			; Return to main ISR
 
 
 DELAY		ldx #$00				; Initialize delay counter
