@@ -3,7 +3,7 @@
 ; Modified for the CBS6000 by Koen van Vliet <8by8mail@gmail.com>
 
 #define ROM4K
-#define SEGDELAY 359
+#define SEGDELAY (360*8)-1
 
 * = $E000
 
@@ -41,19 +41,15 @@ COUNTER		= $2E ; NOT USED
 CRC			= $2F
 CRCCHECK	= $30
 
-INTL	=	$31
-INTH	=	$32
-INTERRUPT	=	INTL
-
-DIGN	=	$33
-DIG0	=	$34
-DIG1	=	$35
-DIG2	=	$36
-DIG3	=	$37
-DIG4	=	$38
-DIG5	=	$39
-
-
+DIGN		=	$33
+DIG0		=	$34
+DIG1		=	$35
+DIG2		=	$36
+DIG3		=	$37
+DIG4		=	$38
+DIG5		=	$39
+DIGA		=	$3A
+ISTAT		=	$3B
 
 
 STATLED = $04
@@ -68,26 +64,13 @@ RESET		CLD				 		; Clear decimal arithmetic mode.
 			lda #(1<<4)|(1<<0)		; Initialize ACIA
 			sta ACIA_CTRL			; * Serial clock/16
 									; * 8b 2s no parity
-
-			lda #4					; Load some test values
-			sta DIG0
-			lda #5
-			sta DIG1
-			lda #6
-			sta DIG2
-			lda #7
-			sta DIG3
-			lda #8
-			sta DIG4
-			lda #9
-			sta DIG5
-
-			lda #<SEVSEG			; Load interrupt vector
-			sta INTL
-			lda #>SEVSEG
-			sta INTH
 			jsr ENSEG				; Enable seven segment display
-			
+			lda #<MSG4
+			sta MSGL
+			lda #>MSG4
+			sta MSGH
+			jsr SSHOWMSG			; Put message on 7 segment display
+			cli
 			LDA #$0D
 			JSR ECHO				;* New line.
 			LDA #$0A
@@ -121,15 +104,14 @@ BACKSPACE	DEY				 ;Backup text index.
 			JSR ECHO
 			LDA #$88		;*Backspace again to get to correct pos.
 			JSR ECHO
-NEXTCHAR	jsr SEVSEG
-			LDA ACIA_SR	  ;*See if we got an incoming char
+NEXTCHAR	LDA ACIA_SR	  ;*See if we got an incoming char
 				AND #$01		  ;*Test bit 1
 				BEQ NEXTCHAR	 ;*Wait for character
 				LDA ACIA_DAT	 ;*Load char
 			CMP #$60		;*Is it Lower case
 			BMI	CONVERT		;*Nope, just convert it
 			AND #$5F		;*If lower case, convert to Upper case
-CONVERT	  ORA #$80		  ;*Convert it to "ASCII Keyboard" Input
+CONVERT	 	ORA #$80		  ;*Convert it to "ASCII Keyboard" Input
 				STA IN,Y		  ;Add to text buffer.
 				JSR ECHO		  ;Display character.
 				CMP #$8D		  ;CR?
@@ -152,6 +134,8 @@ NEXTITEM	 LDA IN,Y		  ;Get character.
 				BEQ RUN			;Yes, run user program.
 				;CMP #$CC		  ;* "L"?
 				;BEQ LOADINT	  ;* Yes, Load Intel Code.
+				CMP #$43		  ;* "C"?
+				BEQ CLEARSEVSEG		; Yes, Clear seven segment displays
 				STX L			  ;$00->L.
 				STX H			  ; and H.
 				STY YSAV		  ;Save Y for comparison.
@@ -184,6 +168,8 @@ ACTRUN		JMP (XAML)		;Run at current XAM index.
 
 ;LOADINT		JSR BINLOAD		;* Load the Intel code.
 ;			JMP	SOFTRESET	;* When returned from the program, reset EWOZ.
+CLEARSEVSEG		JSR SCLEAR
+			JMP SOFTRESET
 
 NOESCAPE	 BIT MODE		  ;Test MODE byte.
 				BVC NOTSTOR	  ;B6=0 for STOR, 1 for XAM and BLOCK XAM
@@ -239,7 +225,7 @@ PRHEX		 AND #$0F		  ;Mask LSD for hex print.
 				CMP #$BA		  ;Digit?
 				BCC ECHO		  ;Yes, output it.
 				ADC #$06		  ;Add offset for letter.
-ECHO		  PHA				 ;*Save A
+ECHO		PHA				 ;*Save A
 				AND #$7F		  ;*Change to "standard ASCII"
 				STA ACIA_DAT	 ;*Send it.
 WAIT		 LDA ACIA_SR	  ;*Load status register for ACIA
@@ -263,6 +249,21 @@ GETCHAR		LDA ACIA_SR		;See if we got an incoming char
 			LDA ACIA_DAT	;Load char
 			RTS
 
+SCLEAR		lda #<CLR				; Clear display
+			sta MSGL
+			lda #>CLR
+			sta MSGH
+			jsr SSHOWMSG
+			rts
+
+SSHOWMSG	ldy #6					; Repeat for all 6 digits
+SPUTDIS		dey
+			lda (MSGL),Y			; Copy string
+			sta DIG0,Y				; to display
+			cpy #0
+			bne SPUTDIS
+			rts
+
 ENSEG		lda #0					; Go to first digit
 			sta DIGN
 			lda #$07				; Set PA0..PA2 to output 
@@ -280,25 +281,31 @@ ENSEG		lda #0					; Go to first digit
 			sta ICR
 			rts
 
-ISR			jmp (INTERRUPT)
-
-DIAL		pha
-			; Code goes here
-			pla
-			rti	
-
-SEVSEG		pha
+ISR			pha
 			txa
 			pha
-			tya
+			lda ICR					; Acknowledge interrupt
+			sta ISTAT				; Store interrupt flags for later use
+			and #2					; Check timer B overflow
+			bne SEVSEG				; Yes, refresh display
+SEVSEGRET	pla
+			tax
+			pla
+			rti
+
+SEVSEG		tya
 			pha
+			lda DIGN
+			sta PRA					; Select digit
 			ldy DIGN
-			ldx DIG0,Y				; Get character
+			lda DIG0,Y				; Get character
+			beq SEVSEGNUL
+			sec
+			sbc #$20				; Convert from ascii
+SEVSEGNUL	tax
 			lda SEGS,X				; Lookup shape
 			sta PRB					; Drive LED segments
-			lda DIGN
-			sta PRA
-			lda #06
+			lda #05
 			cmp DIGN				; * At last digit?				
 			bne NEXTSEG				; * Yes, return to first one.
 			lda #0
@@ -307,21 +314,25 @@ SEVSEG		pha
 NEXTSEG		inc DIGN				; Go to the next digit
 ENDSEG		pla
 			tay
-			pla
-			tax
-			pla
-			rts
+			jmp SEVSEGRET			; Return to main ISR
+
+
 
 
 MSG1		.asc "Welcome to EWOZ 1.0.",0
 MSG2		.asc "Start binary transfer...",0
 MSG3		.asc "Binary transfer complete!",0
-SEGS		.byte $3F, $06, $5B, $4F, $66, $6D, $7D, $07, $7F, $6F
-			;.byte $00, $00, $00, $48, $00, $53, $00
-			.byte $77, $7C, $39, $5E, $79, $71, $6F, $76, $06, $1E
-			.BYTE $76, $38, $55, $54, $3F, $73, $67, $50, $6D, $78
-			.BYTE $3E, $FE, $1C, $76, $6E, $5B
-			.byte 
+SEGS		.byte $00, $82, $21, $00, $00, $00, $00, $02, $39, $0F	; Symbols
+			.byte $00, $00, $00, $40, $80, $52
+			.byte $3F, $06, $5B, $4F, $66, $6D, $7D, $07, $7F, $6F	; Numbers
+
+			.byte $00, $00, $00, $48, $00, $53, $00					; Symbols
+
+			.byte $77, $7C, $39, $5E, $79, $71, $6F, $76, $06, $1E	; Letters
+			.byte $76, $38, $55, $54, $3F, $73, $67, $50, $6D, $78
+			.byte $3E, $FE, $1C, $76, $6E, $5B
+MSG4		.asc "CBS128"
+CLR			.asc	0,0,0,0,0,0
 end:
 #ifdef ROM8K
 		.dsb ($2000-(end-start)-6),$FF

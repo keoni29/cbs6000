@@ -1,7 +1,7 @@
 #define ledpin 4
+#define ROM4K
 
-;*= $e000
-*=$0200
+*= $e000
 init:	sei						; Disable interrupts
 		ldx #$FF				; Initialize stack
 		txs
@@ -22,7 +22,9 @@ inner:	dey
 		dex
 		bne delay
 		beq loop		; Jump back to the start
-;end:
-;		.dsb ($1000-(end-init)-4),$FF
-;		.byte $00, $e0
-;		.byte $00, $e0
+#ifdef ROM4K
+end:
+		.dsb ($1000-(end-init)-4),$FF
+		.byte $00, $e0
+		.byte $00, $e0
+#endif
