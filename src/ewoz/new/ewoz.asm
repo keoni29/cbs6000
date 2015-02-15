@@ -21,6 +21,9 @@ COUNTER		= $2E
 CRC			= $2F
 CRCCHECK	= $30
 
+; Memory locations used for the modem/casette interface
+CASEN		= $31
+
 ; Memory locations used by interrupts
 ISRL		= $41			; ISR vector
 ISRH		= $42
@@ -124,9 +127,9 @@ NEXTITEM	LDA IN,Y		  ;Get character.
 			BEQ SETMODE	  ;Set BLOCK XAM mode.
 			CMP #$BA		  ;":"?
 			BEQ SETSTOR	  ;Yes, set STOR mode.
-			CMP #">"		 ;">"?
+			CMP #">"+$80		;">"?
 			BEQ	SETSAVE		; Yes, Save to casette
-			CMP #"<"		; "<"?
+			CMP #"<"+$80		; "<"?
 			BEQ	SETLOAD		; Yes, Load from casette
 			CMP #$D2		  ;"R"?
 			BEQ RUN			;Yes, run user program.
@@ -161,12 +164,12 @@ NOTHEX		CPY YSAV		  ;Check if L, H empty (no hex digits).
 RUN			JSR ACTRUN		;* JSR to the Address we want to run.
 			JMP	SOFTRESET	;* When returned for the program, reset EWOZ.
 ACTRUN		JMP (XAML)		;Run at current XAM index.
-
+JNEXTITEM	JMP NEXTITEM	; Had to be a bit creative because of a branch that was out of range
 LOADINT		JSR LOADINTEL	;* Load the Intel code.
 			JMP	SOFTRESET	;* When returned from the program, reset EWOZ.
 SETSAVE		lda #01
 			sta CASEN
-			jmp SOFTRESET
+			jmp BLSKIP
 SETLOAD		jsr LOADCAS 
 			jmp SOFTRESET
 NOESCAPE	lda CASEN
@@ -178,7 +181,7 @@ ISXAM		BIT MODE		  ;Test MODE byte.
 			LDA L			  ;LSD's of hex data.
 			STA (STL, X)	 ;Store at current "store index".
 			INC STL			;Increment store index.
-			BNE NEXTITEM	 ;Get next item. (no carry).
+			BNE JNEXTITEM	 ;Get next item. (no carry).
 			INC STH			;Add carry to 'store index' high order.
 TONEXTITEM  JMP NEXTITEM	 ;Get next command item.
 NOTSTOR		BMI XAMNEXT	  ;B7=0 for XAM, 1 for BLOCK XAM.
@@ -385,29 +388,29 @@ SPUTDIS		dey
 ENSEG		lda #0					; Go to first digit
 			sta DIGN
 			lda #$07				; Set PA0..PA2 to output 
-			ora DDRA
-			sta DDRA
+			ora DDRA2
+			sta DDRA2
 			lda #$FF				; Set PB0..PB7 to output
-			sta DDRB
+			sta DDRB2
 			lda #<SEGDELAY			; Set timer B delay
-			sta TBL
+			sta TBL2
 			lda #>SEGDELAY
-			sta TBH
+			sta TBH2
 			lda #%00010001			; Start timer in continuous mode
-			sta CRB
+			sta CRB2
 			lda #%10000010			; Enable timer B underflow interrupts
-			sta ICR
+			sta ICR2
 			rts
 
 SEVSEG		tya
 			pha
 			lda DIGN
-			sta PRA					; Select digit
+			sta PRA2				; Select digit
 			ldy DIGN
 			lda DIG0,Y				; Get character
 			tax
 			lda SEGS,X				; Lookup shape
-			sta PRB					; Drive LED segments
+			sta PRB2				; Drive LED segments
 			lda #05
 			cmp DIGN				; * At last digit?				
 			bne NEXTSEG				; * Yes, return to first one.
@@ -422,7 +425,7 @@ ENDSEG		pla
 ISR			pha
 			txa
 			pha
-			lda ICR					; Acknowledge interrupt
+			lda ICR2				; Acknowledge interrupt
 			jmp (ISRL)				; Execute user interrupt
 DUMMYISR	and #2					; Check timer B overflow
 			beq NOSEVSEG			; No, don't refresh display
@@ -433,24 +436,26 @@ NOSEVSEG	pla
 			rti
 ;=========================================================================
 LOADCAS		ldy #0
-WAITMOD		lda ACIA_SR	  			; Got user input?
+			lda ACIA2_DAT
+WAITLOAD	lda ACIA_SR	  			; Got user input?
 			and #$01		  		;
 			bne CASESC		 		; Yes, escape from loader.
 GETMOD		lda ACIA2_SR	  		; *Check if a byte was received
 			and #$01		  		; *on the modem.
-			beq WAITMOD	 			; *No, go back
+			beq WAITLOAD	 		; *No, go back
+			lda ACIA2_DAT			; Get byte from modem
 			sta (STL),y				; Store byte
 			inc STL					; Advance to next address
-			bne WAITMOD				; Low byte overflow?
+			bne WAITLOAD			; Low byte overflow?
 			inc STH					; Yes, Increment high byte of address
 CASESC		lda ACIA_DAT			; Load character
 			cmp #$1B				; Is escape character?
-			bne WAITMOD				; No, go back.
+			bne WAITLOAD			; No, go back.
 ENDCAS		lda #<CMSG3
 			sta MSGL
 			lda #>CMSG3
 			sta MSGH
-			jsr SHOWMSG				; Show load done message
+			jsr SHWMSG				; Show load done message
 			lda XAMH
 			jsr PRBYTE				; Print start and end address
 			lda XAML				
@@ -467,15 +472,34 @@ ENDCAS		lda #<CMSG3
 			jsr ECHO
 			rts						; Return
 
-SAVECAS		
+SAVECAS		lda #<CMSG2
+			sta MSGL
+			lda #>CMSG2
+			sta MSGH
+			jsr SHWMSG
+WAITREC		lda ACIA_SR	  			; Got user input?
+			and #$01		  		;
+			beq WAITREC		 		; Yes, escape from loader.
+			lda ACIA_DAT
+			ldy #0
 WAITSAVE	lda ACIA_SR	  			; Got user input?
 			and #$01		  		;
 			bne CASESC		 		; Yes, escape from loader.
-			lda ACIA2_SR			; *Can send?
+SENDMOD		lda ACIA2_SR			; *Can send?
 			and #$02				;
 			beq	WAITSAVE			; *No, go back
-			lda ACIA_DAT	 		; *Get char
+			lda (STL),y	 			; *Get byte from ram
 			sta ACIA2_DAT			; *Send trough FSK modem
+			lda L
+			cmp STL
+			bne NOTDONE
+			lda H
+			cmp STH
+			beq ENDCAS
+NOTDONE		inc STL					; Advance to next address
+			bne WAITSAVE			; Low byte overflow?
+			inc STH					; Yes, Increment high byte of address
+			jmp WAITSAVE			; Repeat for all bytes
 
 
 
@@ -485,7 +509,7 @@ MSG3		.asc "Intel Hex Imported OK.",0
 MSG4		.asc "Intel Hex Imported with checksum error.",0
 CMSG1		.asc "Press PLAY on tape.",0
 CMSG2		.asc "Press RECORD and PLAY on tape.",0
-CMSG3		.asc "Loaded data from casette tape.",0
+CMSG3		.asc "Done!",0
 DMSG1		.asc "READY "
 CLR			.asc	0,0,0,0,0,0
 
