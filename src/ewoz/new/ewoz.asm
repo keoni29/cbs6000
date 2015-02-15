@@ -3,7 +3,7 @@
 ; Modified for personal use by Koen van Vliet <8by8mail@gmail.com>
 
 #define SEGDELAY (360*8)-1
-#define ROM4K
+#define ROM8K
 
 ; Memory locations used by the monitor
 IN			= $0200			;*Input buffer
@@ -436,7 +436,10 @@ NOSEVSEG	pla
 			rti
 ;=========================================================================
 LOADCAS		ldy #0
-			lda ACIA2_DAT
+FLUSH		lda ACIA2_DAT			; Flush acia rx re before loading
+			lda ACIA2_SR
+			and #$01
+			bne FLUSH
 WAITLOAD	lda ACIA_SR	  			; Got user input?
 			and #$01		  		;
 			bne CASESC		 		; Yes, escape from loader.
@@ -445,6 +448,8 @@ GETMOD		lda ACIA2_SR	  		; *Check if a byte was received
 			beq WAITLOAD	 		; *No, go back
 			lda ACIA2_DAT			; Get byte from modem
 			sta (STL),y				; Store byte
+			lda #$2E
+			sta ACIA_DAT			; Print dot to indicate activity
 			inc STL					; Advance to next address
 			bne WAITLOAD			; Low byte overflow?
 			inc STH					; Yes, Increment high byte of address
