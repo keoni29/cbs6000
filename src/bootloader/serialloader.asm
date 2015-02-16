@@ -38,16 +38,18 @@ LOAD		lda ACIA_SR
 			beq LOAD
 			lda ACIA_DAT		; Get byte
 			sta (STL),y			; Store in ram
-			lda H
-			cmp STH				; Check if we're at the last address already
-			bne NOTDONE
 			lda L
-			cmp STL
+			cmp STL				; Check if we're at the last address already
+			bne NOTDONE
+			lda H
+			cmp STH
 			beq DONE
 NOTDONE		inc STL				; Advance to next byte
 			bne LOAD
 			inc STH
-			jmp LOAD
+			lda #$D0			; Stop before it reaches I/O
+			cmp STH
+			bne LOAD
 DONE		lda #<MSGDONE
 			sta MSGL
 			lda #>MSGDONE
