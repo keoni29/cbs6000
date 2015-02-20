@@ -1,0 +1,22 @@
+	.asc $02
+	.asc "              .,-:;//;:=,",$0A,$0D
+	.asc "          . :H@@@MM@M#H/.,+%;,",$0A,$0D
+	.asc "       ,/X+ +M@@M@MM%=,-%HMMM@X/,",$0A,$0D
+	.asc "     -+@MM; $M@@MH+-,;XMMMM@MMMM@+-",$0A,$0D
+	.asc "    ;@M@@M- XM@X;. -+XXXXXHHH@M@M#@/.",$0A,$0D
+	.asc "  ,%MM@@MH ,@%=             .---=-=:=,.",$0A,$0D
+	.asc "  =@#@@@MX.,                -%HX$$%%%:;",$0A,$0D
+	.asc " =-./@M@M$                   .;@MMMM@MM:",$0A,$0D
+	.asc " X@/ -$MM/                    . +MM@@@M$",$0A,$0D
+	.asc ",@M@H: :@:                    . =X#@@@@-",$0A,$0D
+	.asc ",@@@MMX, .                    /H- ;@M@M=",$0A,$0D
+	.asc ".H@@@@M@+,                    %MM+..%#$.",$0A,$0D
+	.asc " /MMMM@MMH/.                  XM@MH; =;",$0A,$0D
+	.asc "  /%+%$XHH@$=              , .H@@@@MX,",$0A,$0D
+	.asc "   .=--------.           -%H.,@@@@@MX,",$0A,$0D
+	.asc "   .%MM@@@HHHXX$$$%+- .:$MMX =M@@MM%.",$0A,$0D
+	.asc "     =XMMM@MM@MM#H;,-+HMM@M+ /MMMX=",$0A,$0D
+	.asc "       =%@M@M#@$-.=$@MM@@@M; %M%=",$0A,$0D
+	.asc "         ,:+$+-,/H#MMMMMMM@= =,",$0A,$0D
+	.asc "               =++%%%%+/:-.",$0A,$0D
+	.asc $0C,$04,0

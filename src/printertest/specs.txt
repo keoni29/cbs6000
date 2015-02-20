@@ -1,0 +1,13 @@
+MSG1	.asc $2,"========================================",$A,$D
+	.asc "= 6510 MicroComputer System            =",$A,$D
+	.asc "========================================",$A,$D
+	.asc "> CPU: MOS6510 @ 0.92MHz               =",$A,$D
+	.asc "> System Memory: 128KB RAM, 8KB ROM    =",$A,$D
+MSG2	.asc $A,$D
+	.asc "> UART2: 57600 baud full duplex        =",$A,$D
+	.asc "> Modem: 1200 baud full duplex         =",$A,$D
+	.asc "> LP: Line printer port                =",$A,$D
+	.asc "> Display: 6 digit 7 segment display   =",$A,$D
+MSG3	.asc $A,$D
+	.asc "> Firmware: Woz Monitor (modified)     =",$A,$D
+	.asc $A,$D,$C,$4,0
