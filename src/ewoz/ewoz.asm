@@ -59,6 +59,8 @@ RESET		CLD			; Clear decimal arithmetic mode.
 		sta MSGL
 		lda #>DMSG1
 		sta MSGH
+
+		cli			; Enable interrupts
 		jsr SSHOWMSG		; Put message on 7 segment display digits
 
 		lda #(1<<4)|(1<<0)	; Initialize ACIA and ACIA2(modem)
@@ -79,7 +81,6 @@ RESET		CLD			; Clear decimal arithmetic mode.
 		LDA #$0A
 		JSR ECHO		; * New line.
 
-		cli			; Enable interrupts
 ; =========================================================================
 SOFTRESET	LDA #$9B		; * Auto escape.
 NOTCR		CMP #$88		; "<-"? * Note this was changed to $88 which is the back space key.
@@ -247,11 +248,13 @@ PRINT		LDA (MSGL),Y
 		JSR ECHO
 		INY 
 		BNE PRINT
-DONE		RTS 
+DONE		RTS
 
 ; =========================================================================
 ; 7 Segment display driver
 ; =========================================================================
+SDCLEAR		jsr DELAY
+		jsr DELAY
 SCLEAR		lda #<CLR		; Clear display
 		sta MSGL
 		lda #>CLR
@@ -259,14 +262,44 @@ SCLEAR		lda #<CLR		; Clear display
 		jsr SSHOWMSG
 		rts
 
-SSHOWMSG	ldy #6			; Repeat for all 6 digits
-SPUTDIS		dey
-		lda (MSGL),Y		; Copy string
+PRASC		ldx #0
 		sec
-		sbc #$20		; Convert character
-		sta DIG0,Y		; to display
-		cpy #0
-		bne SPUTDIS
+		sbc #$20
+		bmi PADONE
+		sta DIGA
+PUTASC		lda DIG1,X		; Move all digits one to the left
+		sta DIG0,X
+		inx
+		cpx #6
+		bne PUTASC
+PADONE		rts
+
+SSHOWMSG	ldy #0			
+SPUTDIS		lda (MSGL),Y		; Copy string
+		beq SDONE		; Done if character is $0
+		jsr PRASC		; Put character on display
+		iny
+		cpy #6
+		bmi SPUTDIS
+		bne SSDEL
+		jsr DELAY
+		jsr DELAY
+SSDEL		jsr DELAY		; Add delay for strings 
+		jmp SPUTDIS		; longer than 6 characters.
+SDONE		rts
+
+DELAY		pha
+		tya
+		pha
+		ldx #128
+OUTER		ldy #0
+INNER		dey
+		bne INNER
+		dex
+		bne OUTER
+		pla
+		tay
+		pla
 		rts
 
 ENSEG		lda #0			; Go to first digit
@@ -464,7 +497,7 @@ MSG4		.asc "Binary Loaded OK.",0
 CMSG1		.asc "Press PLAY on tape.",0
 CMSG2		.asc "Press RECORD and PLAY on tape.",0
 CMSG3		.asc "Done!",0
-DMSG1		.asc "READY "
+DMSG1		.asc "CBS COMPUTER SYSTEM",0
 CLR		.asc 0,0,0,0,0,0
 
 SEGS		.byte $00, $82, $21, $00, $00, $00, $00, $02, $39, $0F	; Symbols
