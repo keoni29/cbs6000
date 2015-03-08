@@ -1,0 +1,80 @@
+gd_wr J1_RESET,1 ; Halt co-processor
+gd_fill RAM_PIC, 0, 4095 ; Zero all character RAM
+gd_fill RAM_SPRPAL, 0, 2048 ; Sprite palletes black
+gd_fill RAM_SPRIMG, 0, 16384 ; Clear all sprite data
+gd_fill VOICES, 0, 256 ; Silence
+gd_fill PALETTE16A, 0, 128 ; Black 16-, 4-palletes and COMM
+gd_fill16 RAM_SPR,400,512
+;Load defaults
+gd_wr16 PALETTE16A,8000h ; Set palette to transparent
+gd_wr16 SCROLL_X, 0
+gd_wr16 SCROLL_Y,0
+gd_wr JK_MODE,0
+gd_wr SPR_DISABLE,0
+gd_wr SPR_PAGE,0
+gd_wr IOMODE,0
+gd_wr16 BG_COLOR,c_black
+gd_wr16 SAMPLE_L,0
+gd_wr16 SAMPLE_R,0
+gd_wr16 SCREENSHOT_Y,0
+gd_wr MODULATOR,64
+
+		ldx #$10
+		ldy #$00
+		tya
+SCREENFILL	stx GDEND
+FILL1		jsr GDFILL256
+		iny
+		cpy GDEND
+		bne FILL1
+
+GDECHO		pha
+		cmp #$0A				; Is newline?
+		bne GDNL			; No, skip
+		inc CRY				; Yes, go to next line
+GDNL		cmp #$0B				; Is CR?
+		bne GDCR			; No, skip
+		lda #0				; Yes, jump to first char in line
+		sta CRX				
+GDCR		cmp #$08				; Is backspace?
+		bne GDBS			; No, skip
+		lda CRX				; Already on the first character?
+		beq NOECHO			; Yes, no backspace
+		dec CRX				; Yes, go back one spot
+		ldx #$20			; Overwrite previous character with a space
+		jsr GDBS			; Write space
+		dec CRX
+		pla
+		rts				; Return
+GDBS		cmp #$20			; Is printable character?
+		bcc NOECHO			; No, don't print
+		pha
+		lda #($FF^CS)			; Select device
+		and PRA
+		sta PRA
+		lda CRY
+		ror				; Addr = CRY*64 + CRX
+		sec				; Write mode ($80)
+		ror				
+		and #$70
+		jsr PRBYTE
+		jsr SPI				; Transfer high address byte
+		lda CRY
+		ror
+		ror
+		and #$C0
+		clc
+		adc CRX
+		jsr PRBYTE
+		jsr SPI				; Transfer low address byte
+		pla
+		jsr PRBYTE
+		jsr SPI				; Transfer character
+		lda #CS				; Deselect device
+		ora PRA
+		sta PRA
+		inc CRX				; Advance cursor position
+		lda #$0A
+		jsr ECHO
+NOECHO		pla
+		rts				; Return

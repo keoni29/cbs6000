@@ -219,6 +219,7 @@ XAMNEXT		STX MODE		; 0-> MODE (XAM mode).
 MOD8CHK		LDA XAML		; Check low-order 'exainine index' byte
 		AND #$0F		; For MOD 8=0 ** changed to $0F to get 16 values per row **
 		BPL NXTPRNT	  	; Always taken.
+
 PRBYTE		PHA			; Save A for LSD.
 		LSR
 		LSR

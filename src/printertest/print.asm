@@ -49,7 +49,7 @@ BUSY		lda #$02
 		bne BUSY
 DONE		rts		; Done printing characters
 
-MSG1	.asc $02		; This is beautiful!
+MSG1	.asc $02,$0D		; This is beautiful!
 	.asc "              .,-:;/;;:=,",$0A,$0D
 	.asc "          . :H@@@MM@M#H/.,+%;,",$0A,$0D
 	.asc "       ,/X+ +M@@M@MM%=,-%HMMM@X/,",$0A,$0D
