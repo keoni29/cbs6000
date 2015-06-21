@@ -5,6 +5,7 @@
 
 #define SEGDELAY (360*8)-1
 #define ROM8K
+#define VERSION "1.2"
 
 ; Memory locations used by the monitor
 IN		= $0200			; *Input buffer
@@ -41,6 +42,21 @@ DIGA		= $4A
 
 ; =========================================================================
 * = $E000
+START		JMP RESET 		; e000
+		JMP SOFTRESET		; e003
+		JMP PRBYTE		; e006
+		JMP PRHEX		; e009
+		JMP ECHO		; e00c
+		JMP SHWMSG 		; e00f
+		JMP SDCLEAR  		; e012
+		JMP PRASC 		; e015
+		JMP SSHOWMSG 		; e018
+		JMP DELAY 		; e01b
+		JMP LOADCAS 		; e01e
+		JMP SAVECAS 		; e021
+		JMP LOADER 		; e024
+		JMP LPTINIT		; e027
+		JMP LPTPUTC		; e02A
 RESET		CLD			; Clear decimal arithmetic mode.
 		sei			; Disable interrupts
 		ldx #$FF
@@ -487,17 +503,35 @@ DONE2		lda #<MSG4
 		lda STL
 		jsr PRBYTE
 		rts			; Return to woz monitor
-
+; =========================================================================
+; Line Printer
+; =========================================================================
+LPTINIT		lda #$90	; Set strobe high
+		sta PRB
+		lda #$FF	; Set data pins to all outputs
+		sta DDRB
+		rts
+; Print character in Accumulator to line printer
+LPTPUTC		ora #$80	; Set strobe high
+		sta PRB		; Put data on I/O port
+		nop
+		and #$7F	; Set strobe low
+		sta PRB		; Data is latched now
+		nop
+		ora #$80	; Set strobe high
+		sta PRB		; Put data on I/O port
+		nop
+		rts
 
 MSG1		.asc "6510 Microcomputer System",$0D,$0A
 		.asc "128K RAM, 8K ROM",$0D,$0A
-MSG2		.asc "eWoz v1.1",$0D,$0A,0
+MSG2		.asc "eWoz v",VERSION,$0D,$0A,0
 MSG3		.asc "Start binary Transfer.",0
 MSG4		.asc "Binary Loaded OK.",0
 CMSG1		.asc "Press PLAY on tape.",0
 CMSG2		.asc "Press RECORD and PLAY on tape.",0
 CMSG3		.asc "Done!",0
-DMSG1		.asc "CBS COMPUTER SYSTEM",0
+DMSG1		.asc "KABOOM",0
 CLR		.asc 0,0,0,0,0,0
 
 SEGS		.byte $00, $82, $21, $00, $00, $00, $00, $02, $39, $0F	; Symbols
@@ -512,13 +546,13 @@ SEGS		.byte $00, $82, $21, $00, $00, $00, $00, $02, $39, $0F	; Symbols
 
 END		
 #ifdef ROM4K
-	.dsb ($1000-(END-RESET)-6),$FF
+	.dsb ($1000-(END-START)-6),$FF
 	.word RESET
 	.word RESET
 	.word ISR
 #endif
 #ifdef ROM8K
-	.dsb ($2000-(END-RESET)-6),$FF
+	.dsb ($2000-(END-START)-6),$FF
 	.word RESET
 	.word RESET
 	.word ISR

@@ -1,0 +1,8 @@
+Workflow CBS6000:
+1. Write program
+2. Assemble using $ xas srcfile (no file extension)
+3. Type [L] + [Return] on the CBS6000 to start the loader
+4. Send the binary by typing
+	stty -F /dev/ttyS0 57600
+	cat binary.bin > /dev/ttyS0
+5. Type [R] + [Return] on the CBS6000 to run 
