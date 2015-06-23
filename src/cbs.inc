@@ -1,6 +1,11 @@
-#define DISROM  16
+; HIGH to disable rom (default LOW)
+#define ROMDIS	4
+; LOW: Bank 0 selected, HIGH: Bank 1 selected (default LOW)
+#define BANKSW	5
+
+;#define DISROM  16
 ;#define STATLED  4
-#define BANKSEL  32
+;#define BANKSEL  32
 ;#define RUN 1
 
 ; CBS6000 memory map

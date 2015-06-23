@@ -8,35 +8,35 @@
 #define VERSION "1.2"
 
 ; Memory locations used by the monitor
-IN		= $0200			; *Input buffer
-XAML		= $24			; *Index pointers
-XAMH		= $25
-STL		= $26
-STH		= $27
-L		= $28
-H		= $29
-YSAV		= $2A
-MODE		= $2B
-MSGL		= $2C
-MSGH		= $2D
-COUNTER		= $2E
-CRC		= $2F
-CRCCHECK	= $30
+		IN		= $0200			; *Input buffer
+		XAML		= $24			; *Index pointers
+		XAMH		= $25
+		STL		= $26
+		STH		= $27
+		L		= $28
+		H		= $29
+		YSAV		= $2A
+		MODE		= $2B
+		MSGL		= $2C
+		MSGH		= $2D
+		COUNTER		= $2E
+		CRC		= $2F
+		CRCCHECK	= $30
 
 ; Memory locations used for the modem/casette interface
-CASEN		= $31
+		CASEN		= $31
 
 ; Memory locations used by interrupts
-ISRL		= $41			; ISR vector
-ISRH		= $42
-DIGN		= $43			; Seven segment digits
-DIG0		= $44
-DIG1		= $45
-DIG2		= $46
-DIG3		= $47
-DIG4		= $48
-DIG5		= $49
-DIGA		= $4A
+		ISRL		= $41			; ISR vector
+		ISRH		= $42
+		DIGN		= $43			; Seven segment digits
+		DIG0		= $44
+		DIG1		= $45
+		DIG2		= $46
+		DIG3		= $47
+		DIG4		= $48
+		DIG5		= $49
+		DIGA		= $4A
 
 #include "../cbs.inc"
 
@@ -56,11 +56,17 @@ START		JMP RESET 		; e000
 		JMP SAVECAS 		; e021
 		JMP LOADER 		; e024
 		JMP LPTINIT		; e027
-		JMP LPTPUTC		; e02A
+		JMP LPTPUTC		; e02a
+		JMP BCOPY		; e02d
 RESET		CLD			; Clear decimal arithmetic mode.
 		sei			; Disable interrupts
 		ldx #$FF
 		txa			; Init stack
+		
+		lda #0
+		sta DDR
+		sta PORT
+
 		lda #3
 		sta ACIA_CTRL		; Reset ACIA
 		sta ACIA2_CTRL		; Reset ACIA2 (modem)
@@ -506,32 +512,72 @@ DONE2		lda #<MSG4
 ; =========================================================================
 ; Line Printer
 ; =========================================================================
-LPTINIT		lda #$90	; Set strobe high
-		sta PRB
-		lda #$FF	; Set data pins to all outputs
+LPTINIT		lda #$90		; Set strobe high
+		sta PRB	
+		lda #$FF		; Set data pins to all outputs
 		sta DDRB
 		rts
 ; Print character in Accumulator to line printer
-LPTPUTC		ora #$80	; Set strobe high
-		sta PRB		; Put data on I/O port
+LPTPUTC		ora #$80		; Set strobe high
+		sta PRB			; Put data on I/O port
 		nop
-		and #$7F	; Set strobe low
-		sta PRB		; Data is latched now
+		and #$7F		; Set strobe low
+		sta PRB			; Data is latched now
 		nop
-		ora #$80	; Set strobe high
-		sta PRB		; Put data on I/O port
+		ora #$80		; Set strobe high
+		sta PRB			; Put data on I/O port
 		nop
 		rts
+; =========================================================================
+; Bankswitching
+; =========================================================================
+; Copy a block of data from the active bank to the inactive bank.
+; XAMHL holds the read start address
+; HL holds the read end address
+; STHL holds the write start address
+;
+; Bank A is the active bank
+; Bank B is the inactive bank
+#define SWITCH	lda #(1<<BANKSW) : eor PORT : sta PORT
 
+BCOPY		ldy #0			; Bank A
+BCPY1		ldx STL
+		SWITCH			; Bank B
+		stx STL
+		SWITCH			; Bank A
+		ldx STH
+		SWITCH			; Bank B
+		stx STH
+		SWITCH			; Bank A
+		lda (XAML),y	 	; Get byte from ram
+		tax
+		SWITCH			; Bank B
+		txa
+		sta (STL),y		; Store byte in ram
+		SWITCH			; Bank A
+		lda L
+		cmp XAML
+		bne CPYNDONE
+		lda H
+		cmp XAMH
+		beq CPYDONE
+CPYNDONE	inc STL
+		inc XAML		; Advance to next address
+		bne BCPY1		; Low byte overflow?
+		inc STH			; Yes, Increment high byte of address
+		inc XAMH
+		jmp BCPY1		; Repeat for all bytes
+CPYDONE		rts
 MSG1		.asc "6510 Microcomputer System",$0D,$0A
 		.asc "128K RAM, 8K ROM",$0D,$0A
 MSG2		.asc "eWoz v",VERSION,$0D,$0A,0
 MSG3		.asc "Start binary Transfer.",0
 MSG4		.asc "Binary Loaded OK.",0
+
 CMSG1		.asc "Press PLAY on tape.",0
 CMSG2		.asc "Press RECORD and PLAY on tape.",0
 CMSG3		.asc "Done!",0
-DMSG1		.asc "KABOOM",0
+DMSG1		.asc "READY!",0
 CLR		.asc 0,0,0,0,0,0
 
 SEGS		.byte $00, $82, $21, $00, $00, $00, $00, $02, $39, $0F	; Symbols
