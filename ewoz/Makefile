@@ -1,2 +1,2 @@
 all:
-	xa -M -l ewoz.list -o ewoz.bin ewoz.asm
+	xa -M -l ewoz.lst -o ewoz.bin ewoz.asm
