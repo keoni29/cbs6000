@@ -364,17 +364,17 @@ ENDSEG		pla
 ; Interrupts
 ; =========================================================================
 ISR			pha
-		txa
-		pha
-		lda ICR2		; Acknowledge interrupt
-		jmp (ISRL)		; Execute user interrupt
-DUMMYISR	and #2			; Check timer B overflow
-		beq NOSEVSEG		; No, don't refresh display
-		jsr SEVSEG
+			txa
+			pha
+			lda ICR2			; Acknowledge interrupt
+			jmp (ISRL)			; Execute user interrupt
+DUMMYISR	and #2				; Check timer B overflow
+			beq NOSEVSEG		; No, don't refresh display
+			jsr SEVSEG
 NOSEVSEG	pla
-		tax
-		pla
-		rti
+			tax
+			pla
+			rti
 ; =========================================================================
 ; Casette save/load
 ; =========================================================================

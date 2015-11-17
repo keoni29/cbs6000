@@ -15,7 +15,6 @@ CRB = CIA + $F
 addr = $02
 
 
-#define cbaud 1;
 #define delay 125
 
 #define CS 1

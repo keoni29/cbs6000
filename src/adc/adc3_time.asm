@@ -10,7 +10,9 @@ SHWMSG	=	$e00f
 	.word END - 1
 
 * = $6000
-INIT		lda #<COFF
+INIT		sei
+		lda ICR2
+		lda #<COFF
 		sta MSGL
 		lda #>COFF
 		sta MSGH
@@ -18,10 +20,16 @@ INIT		lda #<COFF
 LOOP		lda ACIA_SR
 		and #$01
 		bne ESCAPE
+		ldx #0
 		lda AD
 		sta AD
+WAIT		lda ICR2
+		inx
+		and #(1<<4)
+		beq WAIT
+		txa
 		jsr PRBYTE
-		lda #$0D
+		lda #$0A
 		jsr ECHO
 		jmp LOOP
 ESCAPE		lda #<CON
@@ -29,6 +37,7 @@ ESCAPE		lda #<CON
 		lda #>CON
 		sta MSGH
 		jsr SHWMSG
+		cli
 		rts
 
 CON		.asc $1B,"[>5h",$00

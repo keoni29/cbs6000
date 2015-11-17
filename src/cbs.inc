@@ -1,7 +1,15 @@
+; Address $0000 - $03FF can be fixed to bank 1
+; HIGH to disable this feature
+#define RAML	3
 ; HIGH to disable rom (default LOW)
 #define ROMDIS	4
 ; LOW: Bank 0 selected, HIGH: Bank 1 selected (default LOW)
 #define BANKSW	5
+
+; SPI Expansion port
+#define SPI_EN 0
+#define SPI_DC 2
+#define SPI_RST 3
 
 ;#define DISROM  16
 ;#define STATLED  4

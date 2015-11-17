@@ -1,0 +1,7 @@
+Gnd
+PA2 - DC
+PA3 - RST
+3V3
+PA0 - ENABLE
+SP - DIN
+CNT - SCK
