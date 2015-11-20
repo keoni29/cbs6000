@@ -1,39 +1,65 @@
 IN, 0x0200, 0, 0x0000
+    ewoz.asm 135 146 165
 XAML, 0x0024, 0, 0x0000
+    ewoz.asm 190 215 225 231 234 239 242 409 475 503 552 559 565
 XAMH, 0x0025, 0, 0x0000
+    ewoz.asm 223 236 241 407 477 501 562 568
 STL, 0x0026, 0, 0x0000
+    ewoz.asm 206 207 214 393 396 415 439 442 447 470 474 483 485 490 509 544 546 556 564
 STH, 0x0027, 0, 0x0000
+    ewoz.asm 209 398 413 445 449 476 488 492 494 507 548 550 567
 L, 0x0028, 0, 0x0000
+    ewoz.asm 162 178 205 213 235 441 484 558
 H, 0x0029, 0, 0x0000
+    ewoz.asm 163 179 237 444 487 561
 YSAV, 0x002a, 0, 0x0000
+    ewoz.asm 164 184
 MODE, 0x002b, 0, 0x0000
+    ewoz.asm 144 203 233
 MSGL, 0x002c, 0, 0x0000
+    ewoz.asm 81 97 268 281 300 403 424 457 497
 MSGH, 0x002d, 0, 0x0000
+    ewoz.asm 83 99 283 405 426 459 499
 COUNTER, 0x002e, 0, 0x0000
 CRC, 0x002f, 0, 0x0000
 CRCCHECK, 0x0030, 0, 0x0000
 CASEN, 0x0031, 0, 0x0000
+    ewoz.asm 141 195 199
 ISRL, 0x0041, 0, 0x0000
+    ewoz.asm 75 370
 ISRH, 0x0042, 0, 0x0000
+    ewoz.asm 77
 DIGN, 0x0043, 0, 0x0000
+    ewoz.asm 328 346 348 354 357 359
 DIG0, 0x0044, 0, 0x0000
+    ewoz.asm 293 349
 DIG1, 0x0045, 0, 0x0000
+    ewoz.asm 292
 DIG2, 0x0046, 0, 0x0000
 DIG3, 0x0047, 0, 0x0000
 DIG4, 0x0048, 0, 0x0000
 DIG5, 0x0049, 0, 0x0000
 DIGA, 0x004a, 0, 0x0000
+    ewoz.asm 291
 DDR, 0x0000, 0, 0x0000
+    ewoz.asm 67
 PORT, 0x0001, 0, 0x0000
+    ewoz.asm 68 545 547 549 551 554 557
 ACIA, 0xd800, 0, 0x0000
+    ../cbs.inc 52 53 54
 ACIA2, 0xd820, 0, 0x0000
+    ../cbs.inc 55 56 57
 AD, 0xd840, 0, 0x0000
 CIA, 0xd000, 0, 0x0000
+    ../cbs.inc 28 29 30 31 32 33 34 35 36 37 38 39
 CIA2, 0xd860, 0, 0x0000
+    ../cbs.inc 40 41 42 43 44 45 46 47 48 49 50 51
 PRA, 0xd000, 0, 0x0000
 PRB, 0xd001, 0, 0x0000
+    ewoz.asm 516 522 525 528
 DDRA, 0xd002, 0, 0x0000
 DDRB, 0xd003, 0, 0x0000
+    ewoz.asm 518
 TAL, 0xd004, 0, 0x0000
 TAH, 0xd005, 0, 0x0000
 TBL, 0xd006, 0, 0x0000
@@ -43,112 +69,213 @@ ICR, 0xd00d, 0, 0x0000
 CRA, 0xd00e, 0, 0x0000
 CRB, 0xd00f, 0, 0x0000
 PRA2, 0xd860, 0, 0x0000
+    ewoz.asm 347
 PRB2, 0xd861, 0, 0x0000
+    ewoz.asm 352
 DDRA2, 0xd862, 0, 0x0000
+    ewoz.asm 330 331
 DDRB2, 0xd863, 0, 0x0000
+    ewoz.asm 333
 TAL2, 0xd864, 0, 0x0000
 TAH2, 0xd865, 0, 0x0000
 TBL2, 0xd866, 0, 0x0000
+    ewoz.asm 335
 TBH2, 0xd867, 0, 0x0000
+    ewoz.asm 337
 SDR2, 0xd86c, 0, 0x0000
 ICR2, 0xd86d, 0, 0x0000
+    ewoz.asm 341 369
 CRA2, 0xd86e, 0, 0x0000
 CRB2, 0xd86f, 0, 0x0000
+    ewoz.asm 339
 ACIA_CTRL, 0xd800, 0, 0x0000
+    ewoz.asm 71 89
 ACIA_SR, 0xd800, 0, 0x0000
+    ewoz.asm 127 261 386 428 433 463 466 479
 ACIA_DAT, 0xd801, 0, 0x0000
+    ewoz.asm 130 260 395 399 431 462 469 482
 ACIA2_CTRL, 0xd820, 0, 0x0000
+    ewoz.asm 72 90
 ACIA2_SR, 0xd820, 0, 0x0000
+    ewoz.asm 383 389 436
 ACIA2_DAT, 0xd821, 0, 0x0000
+    ewoz.asm 382 392 440
 START, 0xe000, 0, 0x0000
+    ewoz.asm 601
 RESET, 0xe030, 0, 0x0000
+    ewoz.asm 602 603 45
 SOFTRESET, 0xe081, 0, 0x0000
+    ewoz.asm 189 193 198 202 46
 PRBYTE, 0xe1a5, 0, 0x0000
+    ewoz.asm 408 410 414 416 502 504 508 510 47 224 226 232
 PRHEX, 0xe1ae, 0, 0x0000
+    ewoz.asm 48 251
 ECHO, 0xe1b8, 0, 0x0000
+    ewoz.asm 270 412 418 420 506 49 93 95 102 104 115 117 119 124 126 136 220 222 228 230 256
 SHWMSG, 0xe1c7, 0, 0x0000
+    ewoz.asm 406 427 460 500 50 100
 SDCLEAR, 0xe1d4, 0, 0x0000
+    ewoz.asm 51
 PRASC, 0xe1e6, 0, 0x0000
+    ewoz.asm 302 52
 SSHOWMSG, 0xe1f9, 0, 0x0000
+    ewoz.asm 53 86 284
 DELAY, 0xe216, 0, 0x0000
+    ewoz.asm 54 278 279 307 308 309
 LOADCAS, 0xe285, 0, 0x0000
+    ewoz.asm 55 197
 SAVECAS, 0xe2e5, 0, 0x0000
+    ewoz.asm 56 201
 LOADER, 0xe324, 0, 0x0000
+    ewoz.asm 57 192
 LPTINIT, 0xe3a0, 0, 0x0000
+    ewoz.asm 58
 LPTPUTC, 0xe3ab, 0, 0x0000
+    ewoz.asm 59
 BCOPY, 0xe3be, 0, 0x0000
+    ewoz.asm 60
 DUMMYISR, 0xe27a, 0, 0x0000
+    ewoz.asm 74 76
 ENSEG, 0xe227, 0, 0x0000
+    ewoz.asm 79
 DMSG1, 0xe4a7, 0, 0x0000
+    ewoz.asm 80 82
 MSG1, 0xe40c, 0, 0x0000
+    ewoz.asm 96 98
 NOTCR, 0xe083, 0, 0x0000
+    ewoz.asm 138
 BACKSPACE, 0xe09f, 0, 0x0000
+    ewoz.asm 109
 ESCAPE, 0xe08e, 0, 0x0000
+    ewoz.asm 186 111
 NEXTCHAR, 0xe0ac, 0, 0x0000
+    ewoz.asm 129 113
 GETLINE, 0xe093, 0, 0x0000
+    ewoz.asm 122 148
 CONVERT, 0xe0bc, 0, 0x0000
+    ewoz.asm 132
 SETSTOR, 0xe0cf, 0, 0x0000
+    ewoz.asm 153
 SETMODE, 0xe0d0, 0, 0x0000
+    ewoz.asm 151
 BLSKIP, 0xe0d2, 0, 0x0000
+    ewoz.asm 150 196
 NEXTITEM, 0xe0d3, 0, 0x0000
+    ewoz.asm 191 210
 SETSAVE, 0xe133, 0, 0x0000
+    ewoz.asm 155
 SETLOAD, 0xe13a, 0, 0x0000
+    ewoz.asm 157
 RUN, 0xe121, 0, 0x0000
+    ewoz.asm 159
 LOADINT, 0xe12d, 0, 0x0000
+    ewoz.asm 161
 NEXTHEX, 0xe0fa, 0, 0x0000
+    ewoz.asm 183
 DIG, 0xe109, 0, 0x0000
+    ewoz.asm 168
 NOTHEX, 0xe11a, 0, 0x0000
+    ewoz.asm 171
 HEXSHIFT, 0xe10f, 0, 0x0000
+    ewoz.asm 181
 NOESCAPE, 0xe140, 0, 0x0000
+    ewoz.asm 185
 ACTRUN, 0xe127, 0, 0x0000
+    ewoz.asm 188
 JNEXTITEM, 0xe12a, 0, 0x0000
+    ewoz.asm 208
 ISXAM, 0xe14a, 0, 0x0000
+    ewoz.asm 200
 NOTSTOR, 0xe15b, 0, 0x0000
+    ewoz.asm 204
 TONEXTITEM, 0xe158, 0, 0x0000
+    ewoz.asm 238
 XAMNEXT, 0xe18d, 0, 0x0000
+    ewoz.asm 211
 SETADR, 0xe15f, 0, 0x0000
+    ewoz.asm 217
 NXTPRNT, 0xe168, 0, 0x0000
+    ewoz.asm 244
 PRDATA, 0xe183, 0, 0x0000
+    ewoz.asm 218
 MOD8CHK, 0xe19f, 0, 0x0000
+    ewoz.asm 240
 WAIT, 0xe1be, 0, 0x0000
+    ewoz.asm 263
 PRINT, 0xe1c9, 0, 0x0000
+    ewoz.asm 272
 DONE, 0xe1d3, 0, 0x0000
+    ewoz.asm 269
 SCLEAR, 0xe1da, 0, 0x0000
 CLR, 0xe4ae, 0, 0x0000
+    ewoz.asm 280 282
 PADONE, 0xe1f8, 0, 0x0000
+    ewoz.asm 290
 PUTASC, 0xe1ef, 0, 0x0000
+    ewoz.asm 296
 SPUTDIS, 0xe1fb, 0, 0x0000
+    ewoz.asm 305 310
 SDONE, 0xe215, 0, 0x0000
+    ewoz.asm 301
 SSDEL, 0xe20f, 0, 0x0000
+    ewoz.asm 306
 OUTER, 0xe21b, 0, 0x0000
+    ewoz.asm 321
 INNER, 0xe21d, 0, 0x0000
+    ewoz.asm 319
 SEVSEG, 0xe24d, 0, 0x0000
+    ewoz.asm 373
 SEGS, 0xe4b4, 0, 0x0000
+    ewoz.asm 351
 NEXTSEG, 0xe26c, 0, 0x0000
+    ewoz.asm 355
 ENDSEG, 0xe26e, 0, 0x0000
+    ewoz.asm 358
 ISR, 0xe271, 0, 0x0000
+    ewoz.asm 604
 NOSEVSEG, 0xe281, 0, 0x0000
+    ewoz.asm 372
 FLUSH, 0xe287, 0, 0x0000
+    ewoz.asm 385
 WAITLOAD, 0xe291, 0, 0x0000
+    ewoz.asm 391 397 401
 CASESC, 0xe2af, 0, 0x0000
+    ewoz.asm 435 388
 GETMOD, 0xe298, 0, 0x0000
 ENDCAS, 0xe2b6, 0, 0x0000
+    ewoz.asm 446
 CMSG3, 0xe4a1, 0, 0x0000
+    ewoz.asm 402 404
 CMSG2, 0xe482, 0, 0x0000
+    ewoz.asm 423 425
 WAITREC, 0xe2f0, 0, 0x0000
+    ewoz.asm 430
 WAITSAVE, 0xe2fc, 0, 0x0000
+    ewoz.asm 438 448 450
 SENDMOD, 0xe303, 0, 0x0000
 NOTDONE, 0xe31b, 0, 0x0000
+    ewoz.asm 443
 MSG3, 0xe445, 0, 0x0000
+    ewoz.asm 456 458
 FLUSH2, 0xe331, 0, 0x0000
+    ewoz.asm 465
 PARAMETERS, 0xe33b, 0, 0x0000
+    ewoz.asm 468 473
 LOAD, 0xe357, 0, 0x0000
+    ewoz.asm 481 491 495
 NOTDONE2, 0xe36f, 0, 0x0000
+    ewoz.asm 486
 DONE2, 0xe37b, 0, 0x0000
+    ewoz.asm 489
 MSG4, 0xe45c, 0, 0x0000
+    ewoz.asm 496 498
 BCPY1, 0xe3c0, 0, 0x0000
+    ewoz.asm 566 569
 CPYNDONE, 0xe3fe, 0, 0x0000
+    ewoz.asm 560
 CPYDONE, 0xe40b, 0, 0x0000
+    ewoz.asm 563
 MSG2, 0xe439, 0, 0x0000
 CMSG1, 0xe46e, 0, 0x0000
 END, 0xe4ef, 0, 0x0000
+    ewoz.asm 601
