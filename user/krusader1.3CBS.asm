@@ -1,25 +1,9 @@
 ; KRUSADER - An Assembly Language IDE for the Replica 1
-; Modified to work on the CBS6000 microcomputer
-
-; *********************************************************
-; V E R S I O N  H I S T O R Y
-; *********************************************************
 
 ; 6502 Version 1.3 - 23 December, 2007
 ; (c) Ken Wessen (ken.wessen@gmail.com)
 
-; Version 1.3cbs - 19 Nov, 2015
-; Koen van Vliet (8by8mail@gmail.com)
-
-; *********************************************************
-; H O W   T O   B U I L D 
-; *********************************************************
-; Assemble using the 6502 simulator by Michal Kowalski 
-; http://exifpro.com/utils.html
-
-; *********************************************************
-; N O T E S
-; *********************************************************
+; Notes:
 ;	- 11 bytes free (17 free if TABTOSPACE = 0)
 ;	- Entry points:
 ;		SHELL = $711C($F01C)
@@ -30,7 +14,7 @@
 
 CBS6000 =1
 APPLE1  =0
-INROM	=0
+INROM	=0			; Not in rom
 TABTOSPACE = 1
 UNK_ERR_CHECK = 0
 
@@ -50,7 +34,11 @@ BRKAS2 = 1		; if 1, BRK will assemble to two $00 bytes
 	.if INROM	
 MONTOR	=ESCAPE
 	.ELSE
+	.IF CBS6000
+MONTOR	=$E000
+	.else
 MONTOR	=$FF1F
+	.endif
 GETLINE	=MONTOR		; doesn't work in RAM version because needs adjusted monitor code
 	.endif
 
@@ -111,11 +99,16 @@ PRGEND	=$FE		; used to flag end of program parsing
 FAIL	=$FF		; used to flag failure in various searches
 
 ; Zero page storage	
+	.if CBS6000
+IOBUF	=$5C		; I/O buffer for source code input and analysis
+	.else
 IOBUF	=$00		; I/O buffer for source code input and analysis
-LABEL	=$04		; label starts here
-MNE	=$0B		; mnemonic starts here
-ARGS	=$0F		; arguments start here
-COMM    =$1D		; comments start here
+	.endif
+LABEL	=$04		; offset to IOBUF, label starts here
+MNE	=$0B		; offset to IOBUF, mnemonic starts here
+ARGS	=$0F		; offset to IOBUF, arguments start here
+COMM    =$1D		; offset to IOBUF, comments start here
+
 FREFTL	=$29		; address of forward reference table
 FREFTH	=$2A
 NFREF	=$2B		; number of forward symbols
@@ -249,15 +242,15 @@ SHELL			; Loops forever
 	STA IOBUF,X
 	INX
 	BNE .KEY	; always branches
-.RUN	LDA ARGS	
+.RUN	LDA ARGS + IOBUF	
 	BEQ SHELL	; empty command line
-	LDA ARGS+1	; ensure command is just a single letter
+	LDA ARGS + IOBUF+1	; ensure command is just a single letter
 	BEQ .OK
 	CMP #SP
 	BNE .ERR;SHLERR
 .OK	LDX #NUMCMD
 .NEXT	LDA CMDS-1,X	; find the typed command
-	CMP ARGS
+	CMP ARGS + IOBUF
 	BEQ GOTCMD
 	DEX
 	BNE .NEXT
@@ -292,7 +285,7 @@ TOSTRT			; set LINEL,H and CURLNL,H to the start
 
 PANIC
 	JSR SHINIT
-	LDA ARGS+2
+	LDA ARGS + IOBUF+2
 	BNE .SKIP
 	LDA #$01
 .SKIP	STA (SRCSTL),Y	; Y is $00 from SHINIT
@@ -320,7 +313,7 @@ RUN
 
 ADDARG			; convert argument to address
 	LDX #$02
-	LDA ARGS,X
+	LDA ARGS + IOBUF,X
 	BEQ .NOARG
 	PHA
 	JSR EVAL
@@ -429,7 +422,7 @@ GETARG			; get the one or two numeric arguments
 	LDY #$00
 	STY YSAV
 	LDX #$01
-.NEXT	LDA ARGS,X
+.NEXT	LDA ARGS + IOBUF,X
 	BEQ .DONE	; null terminator
 	CMP #SP		; find the space
 	BEQ .CVT
@@ -439,7 +432,7 @@ GETARG			; get the one or two numeric arguments
 	BNE .NEXT
 .CVT	INC YSAV	; count args
 	LDA #HEX
-	STA ARGS,X	; replace the space with '$' and convert
+	STA ARGS + IOBUF,X	; replace the space with '$' and convert
 	JSR CONVRT
 	;CPX #FAIL
 	INX
@@ -693,7 +686,7 @@ PRNTLN			; print out the current line (preserve X)
 	INY
 	JSR PRLNNM
 	LDX #$00
-.PRINT	LDA LABEL,X
+.PRINT	LDA LABEL + IOBUF,X
 	BEQ .DONE	; null terminator
 	JSR OUTCH
 	INX
@@ -763,14 +756,14 @@ ENDIN	RTS
 INPUT	
 	JSR FILLSP
 	LDA #EOL	; need this marker at the start of the comments
-	STA COMM	; for when return hit in args field
+	STA COMM + IOBUF	; for when return hit in args field
 	JSR CRLF
 	JSR PRLNNM
 	LDX #LABEL	; point to LABEL area
 	LDA #ENDLBL
 	JSR ONEFLD
 	JSR INSSPC	; Move to mnemonic field
-	LDA LABEL
+	LDA LABEL + IOBUF
 	CMP #CMNT
 	BEQ .CMNT
 	LDA #ENDMNE
@@ -792,15 +785,15 @@ TOTKN			; tokenise to IOBUF to calc size
 	STX MISCH
 	LDA #SP
 	STA TEMP2
-	LDA #LABEL
+	LDA #LABEL + IOBUF
 	STA MISCL
 	LDA #EOFLD
 	STA TEMP1
 	JSR TKNISE
-	LDY LABEL
+	LDY LABEL + IOBUF
 	CPY #CMNT
 	BNE .CONT
-	LDA #MNE
+	LDA #MNE + IOBUF
 	BNE ISCMNT	; always branches
 .CONT	TXA		; save X
 	PHA		
@@ -817,7 +810,7 @@ CMPMNE			; compress the 3 char mnemonic
 	ROR LMNE		
 	LDX #$03
 .NEXT2	SEC
-	LDA MNE-1,X
+	LDA MNE  + IOBUF-1,X
 	SBC #'A'-1
 	LDY #$05
 .LOOP2	LSR
@@ -843,11 +836,11 @@ CMPMNE			; compress the 3 char mnemonic
 	TXA
 	CMP #FAIL
 	BNE .FOUND
-	LDA MNE		; or a directive?
+	LDA MNE  + IOBUF		; or a directive?
 	CMP #DOT
 	BNE .ERR
 	LDX #NUMDIR
-	LDA MNE+1
+	LDA MNE  + IOBUF+1
 .NEXT	CMP DIRS-1,X
 	BEQ .FDIR
 	DEX
@@ -862,14 +855,14 @@ CMPMNE			; compress the 3 char mnemonic
 	TAX
 	STY IOBUF,X
 	INX
-	LDA #ARGS
+	LDA #ARGS + IOBUF
 	STA MISCL
 ;	LDA #EOFLD
 ;	STA TEMP1
 	JSR TKNISE
 	STX XSAV
 	INC XSAV
-	LDA #COMM
+	LDA #COMM + IOBUF
 ISCMNT	STA MISCL
 	LDA #EOL
 	STA TEMP1
@@ -953,7 +946,7 @@ DETKN			; Load a line to the IOBUF
 	INX
 	INY
 	BNE .LBL
-.CHK	LDA LABEL
+.CHK	LDA LABEL + IOBUF
 	CMP #CMNT
 	BNE .NEXT
 	LDX #MNE
@@ -971,9 +964,9 @@ DETKN			; Load a line to the IOBUF
 	PLA		; restore Y
 	TAY
 	BNE .REST
-.DIR	STX MNE+1
+.DIR	STX MNE  + IOBUF+1
 	LDA #DOT
-	STA MNE
+	STA MNE  + IOBUF
 .REST	INY
 	LDX #ARGS	; point to ARGS area
 .LOOP	LDA (CURLNL),Y
@@ -1187,13 +1180,13 @@ CALCAM			; work out the addressing mode
 	RTS
 	
 PARSE			; Parse one line and validate
-	LDA LABEL
+	LDA LABEL + IOBUF
 	CMP #CMNT
 	BEQ DORTS	; ignore comment lines
-	LDX MNE		; first need to check for an equate
+	LDX MNE  + IOBUF		; first need to check for an equate
 	CPX #DOT
 	BNE .NOEQU
-	LDX MNE+1
+	LDX MNE  + IOBUF+1
 	CPX #MOD	; Do we have a new module?
 	BNE .NOMOD
 	JMP DOMOD
@@ -1202,7 +1195,7 @@ PARSE			; Parse one line and validate
 .NOEQU	CMP #SP		; Is there a label?
 	BEQ .NOLABL	
 	JSR PCSYM	; save the symbol value - in this case it is the PC
-.NOLABL	LDA MNE		
+.NOLABL	LDA MNE  + IOBUF		
 	CMP #DOT	; do we have a directive?
 	BNE CALCAM 	; no
 	
@@ -1210,7 +1203,7 @@ PARSE			; Parse one line and validate
 	
 DODIR	
 	LDX #$00	; handle directives (except equate and module)
-	LDA MNE+1
+	LDA MNE  + IOBUF+1
 	CMP #STR
 	BEQ DOSTR
 	STA FRFLAG	; Disallows forward references
@@ -1219,7 +1212,7 @@ DODIR
 	INX
 	BEQ DIRERR
 	LDA LVALL
-	LDX MNE+1
+	LDX MNE  + IOBUF+1
 	CPX #WORD
 	BEQ DOWORD
 	LDX LVALH
@@ -1227,11 +1220,11 @@ DODIR
 DIRERR	LDY #SYNTAX
 	LDX #FAIL
 	RTS
-DOSTR	LDA ARGS,X
+DOSTR	LDA ARGS + IOBUF,X
 	CMP #QUOTE
 	BNE DIRERR	; String invalid
 .LOOP	INX
-	LDA ARGS,X
+	LDA ARGS + IOBUF,X
 	BEQ DIRERR	; end found before string closed - error
 	CMP #QUOTE
 	BEQ DIROK
@@ -1244,7 +1237,7 @@ DIROK	RTS
 ; ****************************************
 
 DOEQU	
-	;LDA LABEL
+	;LDA LABEL + IOBUF
 	STA FRFLAG
 	JSR CHKALN	; label must be global
 	BCC DIRERR	; MUST have a label for an equate
@@ -1258,17 +1251,17 @@ DOEQU
 ; ****************************************
 
 DOMOD			; Do we have a new module?
-	;LDA LABEL
+	;LDA LABEL + IOBUF
 	JSR CHKALN	; must have a global label
 	BCC DIRERR
 	LDY #$00
-	LDA ARGS
+	LDA ARGS + IOBUF
 	BEQ .STORE
 	CMP #SP
 	BEQ .STORE
 .SETPC	JSR ATOFR	; output finishing module end address (+1)
 	LDX #$00	; set a new value for the PC from the args
-	LDA ARGS
+	LDA ARGS + IOBUF
 	JSR CONVRT
 	;CPX #FAIL
 	INX
@@ -1341,7 +1334,7 @@ PATCH			; back patch in the forward reference symbols
 	BNE .LOOP
 	STA FRFLAG	; nonzero means must resolve local symbols
 .LOOP	LDA (PTCHTL),Y	; copy symbol to COMM
-	STA COMM,Y
+	STA COMM + IOBUF,Y
 	INY
 	CPY #SYMSZ
 	BNE .LOOP
@@ -1411,7 +1404,7 @@ ADDMOD			; Check the arguments and work out the
 	LDX #$FF	; default error value for mode
 	STX CURADM	; save it
 	LDA CURMNE
-	LDX ARGS	; Start checking the format...
+	LDX ARGS + IOBUF	; Start checking the format...
 	BEQ .EOL
 	CPX #SP
 	BNE .NOTSP
@@ -1427,7 +1420,7 @@ ADDMOD			; Check the arguments and work out the
 	JSR CHKMOD	; check if command is a branch
 	CPX #FAIL
 	BEQ .NOTREL
-	LDA ARGS
+	LDA ARGS + IOBUF
 	JMP DOREL
 .DOIMM	CMP #$2C	; check exception first - STA
 	BEQ BAD
@@ -1448,7 +1441,7 @@ ADDMOD			; Check the arguments and work out the
 	;LDX #IMM
 .RET	RTS
 .NOTREL LDX #0		; check the more complicated modes
-	LDA ARGS
+	LDA ARGS + IOBUF
 	CMP #OPEN	; indirection?
 	BNE .CONT	; no
 	INX		; skip the '('
@@ -1533,7 +1526,7 @@ RELOK	RTS		; need to end up with offset value in LVALL
 ; ****************************************
 	
 QTEVAL			; evaluate an expression possibly with a quote
-	LDA ARGS,X
+	LDA ARGS + IOBUF,X
 	BEQ BAD
 	CMP #QUOTE
 	BEQ QCHAR
@@ -1541,14 +1534,14 @@ QTEVAL			; evaluate an expression possibly with a quote
 QCHAR	INX
 	LDA #$0
 	STA LVALH	; quoted char must be a single byte
-	LDA ARGS,X	; get the character
+	LDA ARGS + IOBUF,X	; get the character
 	STA LVALL
 	INX		; check and skip the closing quote
-	LDA ARGS,X	
+	LDA ARGS + IOBUF,X	
 	CMP #QUOTE
 	BNE BAD
 	INX
-	LDA ARGS,X
+	LDA ARGS + IOBUF,X
 	BEQ XDONE
 	CMP #SP
 	BEQ XDONE
@@ -1562,7 +1555,7 @@ DOPLMN			; handle a plus/minus expression
 			; store the result in LVALL,H
 	PHA		; save the operator
 	INX		; move forward
-	LDA ARGS,X	; first calculate the value of the byte
+	LDA ARGS + IOBUF,X	; first calculate the value of the byte
 	JSR BYT2HX
 	CPX #FAIL
 	BNE .CONT
@@ -1607,14 +1600,14 @@ EVAL			; Evaluate an argument expression
 			; on exit we have the expression replaced 
 			; by the required constant
 	STX TEMP3	; store start of the expression
-	LDA ARGS,X
+	LDA ARGS + IOBUF,X
 	CMP #LOBYTE
 	BEQ .HASOP
 	CMP #HIBYTE
 	BNE .DOLBL
 .HASOP	STA FRFLAG	; disables forward references when there
 	INX		; is a '<' or a '>' in the expression
-	LDA ARGS,X
+	LDA ARGS + IOBUF,X
 .DOLBL	JSR CHKLBL	; is there a label?
 	BCS .LBL	; yes - get its value
 	JSR CONVRT	; convert the ASCII
@@ -1627,7 +1620,7 @@ EVAL			; Evaluate an argument expression
 	BEQ XDONE
 	LDX XSAV
 XCONT	INX		; skip the '$'
-	LDA ARGS,X	; Value now in LVALL,H for ASCII or LABEL
+	LDA ARGS + IOBUF,X	; Value now in LVALL,H for ASCII or LABEL
 	JSR CHKLBL
 	BCS XCONT	; Continue until end of label or digits
 	;STX TEMP4	; Store end index
@@ -1649,8 +1642,8 @@ XCHKOP	LDY #$00
 	LDA LVALH	; move LVALH to LVALL
 	STA LVALL
 .GETLO	STY LVALH	; keep LVALL, and zero LVALH
-.STORE	LDA ARGS,X	; copy rest of args to COMM
-	STA COMM,Y
+.STORE	LDA ARGS + IOBUF,X	; copy rest of args to COMM
+	STA COMM + IOBUF,Y
 	BEQ .DOVAL	
 	CMP #SP
 	BEQ .DOVAL
@@ -1659,10 +1652,10 @@ XCHKOP	LDY #$00
 	CPX #ARGSZ
 	BNE .STORE
 .DOVAL	LDA #$00
-	STA COMM,Y
+	STA COMM + IOBUF,Y
 	LDY TEMP3	; get start index 
 	LDA #HEX	; put the '$" back in so subsequent code 
-	STA ARGS,Y	; manages the value properly
+	STA ARGS + IOBUF,Y	; manages the value properly
 	INY
 	LDA LVALH
 	BEQ .DOLO
@@ -1670,8 +1663,8 @@ XCHKOP	LDY #$00
 .DOLO	LDA LVALL
 	JSR HX2ASC
 	LDX #$00	; bring back the rest from IOBUF
-.COPY	LDA COMM,X
-	STA ARGS,Y	; store at offset Y from ARGS
+.COPY	LDA COMM + IOBUF,X
+	STA ARGS + IOBUF,Y	; store at offset Y from ARGS
 	BEQ XDONE
 	INX
 	INY
@@ -1685,17 +1678,17 @@ LB2VAL			; label to be evaluated is in ARGS + X (X = 0 or 1)
 	BEQ DOLVAL
 	JSR CHKLBL	; has the label finished early?
 	BCC .STOP
-	STA COMM,Y	; copy because we need exactly 6 chars for the search
+	STA COMM + IOBUF,Y	; copy because we need exactly 6 chars for the search
 	INX		; COMM isn't used in parsing, so it
-	LDA ARGS,X	; can be treated as scratch space
+	LDA ARGS + IOBUF,X	; can be treated as scratch space
 	INY		
 	BNE .NEXT
 .STOP	LDA #SP		; label is in COMM - ensure filled with spaces
-.LOOP	STA COMM,Y	; Y still points to next byte to process 
+.LOOP	STA COMM + IOBUF,Y	; Y still points to next byte to process 
 	INY
 	CPY #LBLSZ
 	BNE .LOOP
-DOLVAL	LDA #<COMM	; now get value for the label
+DOLVAL	LDA #<COMM + IOBUF	; now get value for the label
 	STA STRL
 	LDX #$00	; select global table (#>COMM)
 	STX STRH
@@ -1703,7 +1696,7 @@ DOLVAL	LDA #<COMM	; now get value for the label
 	STA RECSIG
 	LDA #SYMSZ+2
 	STA RECSZ	; size includes additional two bytes for value
-	LDA COMM
+	LDA COMM + IOBUF
 	CMP #DOT
 	BEQ .LOCAL	; local symbol
 	JSR SYMSCH
@@ -1738,7 +1731,7 @@ DOLVAL	LDA #<COMM	; now get value for the label
 	LDA NFREF
 	CMP #MAXFRF	; Check for table full
 	BPL OVFERR
-	LDA #COMM
+	LDA #COMM ; [...] nOT SURE WHAT IS GOING ON HERE
 	STA HADFRF	; non-zero value tells that FREF was encountered
 	STA MISC2L
 	JSR STORE	; Store the symbol
@@ -1756,14 +1749,14 @@ PCSYM
 ; ****************************************
 	
 STRSYM			; Store symbol - name at LABEL, value in MISC2L,H
-	LDA #LABEL
+	LDA #LABEL + IOBUF
 	STA MISC2L
 	STA STRL
 	LDX #$00
 	STX STRH
 	LDA #SYMSZ
 	STA RECSIG	
-	LDA LABEL	; Global or local?
+	LDA LABEL + IOBUF	; Global or local?
 	CMP #DOT
 	BNE .SRCH	; Starts with a dot, so local
 	LDX #$03
@@ -1779,7 +1772,7 @@ OVFERR	LDY #OVRFLW	; Symbol table overflow	error
 SBAD	LDX #FAIL
 	RTS
 STCONT	;LDA #LABEL
-	LDX LABEL	; Global or local?
+	LDX LABEL + IOBUF	; Global or local?
 	CPX #DOT
 	BEQ .LSYM	; Starts with a dot, so local
 	SEC		; Store symbol in global symbol table	
@@ -1834,16 +1827,16 @@ CONVRT	 		; convert an ASCII string at ARGS,X
 			; uses COMM area for scratch space
 	CMP #HEX	; syntax for hex constant
 	BNE SBAD	; syntax error
-	STY COMM+1
+	STY COMM + IOBUF+1
 	JSR NBYTS
 	CPX #FAIL
 	BEQ SBAD
-	STA COMM
+	STA COMM + IOBUF
 	LDY #$00
 	STY LVALH
 .BACK	DEX
 	DEX
-	LDA ARGS,X
+	LDA ARGS + IOBUF,X
 	CMP #HEX
 	BEQ .1DIG
 	JSR BYT2HX
@@ -1852,9 +1845,9 @@ CONVRT	 		; convert an ASCII string at ARGS,X
 .1DIG	JSR AHARGS1	; one digit
 .SKIP	STA LVALL,Y
 	INY
-	CPY COMM
+	CPY COMM + IOBUF
 	BNE .BACK
-.RET	LDY COMM+1
+.RET	LDY COMM + IOBUF+1
 	RTS
 		
 ; ****************************************
@@ -1903,7 +1896,7 @@ FMT2AM			; calculate the addressing given
 ;
 	LDX #$00
 	LDA #$04	; start with mode index of 4
-	LDY ARGS,X
+	LDY ARGS + IOBUF,X
 	CPY #OPEN
 	BNE .SKIP
 	CLC		; add 3 for indirect modes
@@ -1928,11 +1921,11 @@ FMT2AM			; calculate the addressing given
 .2BYT	CLC
 	ADC #$06	; add 6 to base index for 2 byte modes
 .1BYT	TAY		; mode index now in Y
-.CHECK	LDA ARGS,X
+.CHECK	LDA ARGS + IOBUF,X
 	BEQ .DONE
 	CMP #SP
 	BNE .CONT
-.DONE	LDA ARGS
+.DONE	LDA ARGS + IOBUF
 	CMP #OPEN	; brackets must match
 	BEQ FERR
 .RET	CPY #$0F
@@ -1947,27 +1940,27 @@ FMT2AM			; calculate the addressing given
 .CONT	CMP #CLOSE
 	BNE .MORE
 	LDA #SP
-	STA ARGS	; erase brackets now they have
+	STA ARGS + IOBUF	; erase brackets now they have
 	INX
-	LDA ARGS,X
+	LDA ARGS + IOBUF,X
 	CMP #COMMA
 	BNE .CHECK
-.MORE	LDA ARGS,X
+.MORE	LDA ARGS + IOBUF,X
 	CMP #COMMA
 	BNE FERR
 	INX
-	LDA ARGS,X
+	LDA ARGS + IOBUF,X
 	CMP #'X'
 	BEQ .ISX
 .ISY	CMP #'Y'
 	BNE FERR
-	LDA ARGS
+	LDA ARGS + IOBUF
 	CMP #OPEN
 	BEQ FERR
-	STA ARGS-2,X	; to avoid ,X check below
+	STA ARGS + IOBUF-2,X	; to avoid ,X check below
 	INY
 .ISX	INY
-	LDA ARGS-2,X
+	LDA ARGS + IOBUF-2,X
 	CMP #CLOSE
 	BEQ FERR
 	INX
@@ -2047,7 +2040,7 @@ BYT2HX			; convert the ASCII byte (1 or 2 chars) at offset X in
 ; ****************************************
 
 AHARGS1	INX		; caller needs to DEX
-AHARGS	LDA ARGS,X
+AHARGS	LDA ARGS + IOBUF,X
 ASC2HX			; convert ASCII code in A to a HEX digit
     	EOR #$30  
 	CMP #$0A  
@@ -2073,7 +2066,7 @@ DO1DIG	AND #$0F	; Print 1 hex digit
 	CMP #$3A
 	BCC .DONE
 	ADC #$06
-.DONE	STA ARGS,Y
+.DONE	STA ARGS + IOBUF,Y
 	INY
 	RTS
 	
@@ -2095,7 +2088,7 @@ EXPMNE			; copy the 2 chars at R/LMNETB,X
 	DEY
 	BNE .LOOP
 	ADC #'A'-1
-	STA MNE,X
+	STA MNE  + IOBUF,X
 	LDY PRFLAG
 	BEQ .SKIP
 	JSR OUTCH	; print the mnemonic as well
@@ -2117,6 +2110,8 @@ DISASM
 .COPY	JSR LVTOPC
 ;.DODIS	JMP DSMBL
 ; fall through
+
+; ****************************************
 
 ; ****************************************
 
@@ -2696,7 +2691,7 @@ NOTT
 	JMP MONTOR
 DOCMD	LDX #$FE
 .LOOP	JSR GETCH1
-	STA ARGS+2,X
+	STA ARGS + IOBUF+2,X
 	INX
 	BNE .LOOP
 	JSR BYT2HX
@@ -2823,7 +2818,7 @@ GETCH1	JSR GETCH
 SHWMOD			; Show name of module being assembled
 	JSR CRLF
 	LDX #$00
-.LOOP2	LDA LABEL,X
+.LOOP2	LDA LABEL + IOBUF,X
 	JSR OUTCH
 	INX
 	CPX #LBLSZ
@@ -3081,16 +3076,19 @@ OUTCH	STA PUTCH
 	.WORD DEBUG
 	.ENDIF
 	.ELSE
+
+	.IF CBS6000
+ACIA_SR =$D800
+ACIA_DAT=$D801
+OUTCH	=$e1b8		; CBS6000 Echo
+PRHEX	=$e1ae		; CBS6000 Print Hex Digit Routine
+OUTHEX	=$e1a5		; Apple 1 Print Hex Byte Routine
+	.else	
 ; Apple 1 I/O values
 OUTCH	=$FFEF		; Apple 1 Echo
 PRHEX	=$FFE5		; Apple 1 Echo
 OUTHEX	=$FFDC		; Apple 1 Print Hex Byte Routine
 KBD     =$D010		; Apple 1 Keyboard character read.
 KBDRDY  =$D011		; Apple 1 Keyboard data waiting when negative.
-	.endif	; inrom
-
-	.if CBS6000
-	OUTCH	=$e1b8		; CBS6000 Echo
-	PRHEX	=$e1ae		; CBS6000 Print Hex Digit Routine
-	OUTHEX	=$e1a5		; Apple 1 Print Hex Byte Routine
 	.endif
+	.endif	; inrom
