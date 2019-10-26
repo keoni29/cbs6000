@@ -53,8 +53,8 @@ Label: 5v+  /RES   ph2   R/W  IOEN  /IRQ   D0..7   A0..7   GND
 - R/W - CPU Read Write output
 - IOEN - Address Decoder I/O board enable output
 - /IRQ - CPU Maskable Interrupt Request input
-- Dx - CPU Data bus pin input/output
-- Ax - CPU Addres bus pin input/output
+- D0..A7 - CPU Data bus pin input/output
+- A0..A7 - CPU Addres bus pin input/output
 
 The CPU board I/O connector is located on the left side of the board. It provides access to the CIA's GPIO pins, serial port and handshaking lines and power.
 ```
@@ -62,8 +62,8 @@ The CPU board I/O connector is located on the left side of the board. It provide
 Label: GND   PA0   SP    CNT   PA1   PA2   PB0..7  PC  FLAG  5V+  PA3..7  P0
 ```
 - GND - Power ground
-- PAx - GPIO pin port A input/output
-- PBx - GPIO pin port B input/output
+- PA0..PA7 - GPIO pin port A input/output
+- PB0..PB7 - GPIO pin port B input/output
 - SP - Serial port shift register data input/output
 - CNT - Serial port shift register clock pin input/output
 - PC - Serial port data ready output
