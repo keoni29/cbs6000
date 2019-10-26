@@ -75,13 +75,13 @@ Label: GND   PA0   SP    CNT   PA1   PA2   PB0..7  PC  FLAG  5V+  PA3..7  P0
 The I/O board I/O connector is located on the left side of the board. It provides access to the FSK modem, UART and ADC signals.
 ```
 #       1     2..18     19     20     21     22     23
-Label: GND    n.c.     TXA    RXA    RXD    TXD    ADC
+Label: GND    n.c.     TXA    RXA    RXD    TXD    ANA
 ```
 - GND - Power ground
 - TXA - FSK Modem transmit data output
 - RXA - FSK Modem receive data input
 - TXD - UART transmit data output
 - RXD - UART receive data input
-- ADC - AD Converter analog input
+- ANA - AD Converter analog input
 - n.c. - Pins reserved for future expansion. Do not connect
 	
