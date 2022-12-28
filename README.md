@@ -1,3 +1,5 @@
+Get started with the emulator of this retro 8 bit computer. https://github.com/keoni29/cbs6000-emulator
+
 ## CBS6000 Microcomputer System
 The CBS6000 is a 6502-based computer I built back in 2014. Back then I took great interest in retro computing especially Commodore 64 computers. Some of these computers did not work, so they would be repaired or scrapped for parts. I had a spare 6510 CPU (6502 with some extra features), two 6526 CIA's (IO with timers) and assorted logic IC's. Combined with parts I could salvage from the dumpster at the college electronics lab I could make this microcomputer. The computer consists of a CPU board and an I/O board. The CPU board is a self-contained microcomputer and can work without the I/O board attached. 
 
